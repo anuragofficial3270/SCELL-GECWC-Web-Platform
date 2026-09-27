@@ -62,6 +62,12 @@ create table if not exists public.registrations (
   unique(event_id, roll)
 );
 
+alter table public.registrations add column if not exists year text;
+alter table public.registrations add column if not exists batch text;
+alter table public.registrations add column if not exists phone text;
+alter table public.registrations add column if not exists qr_payload jsonb;
+alter table public.registrations add column if not exists status text default 'confirmed';
+
 create table if not exists public.team_members (
   id uuid primary key default gen_random_uuid(),
   name text not null,

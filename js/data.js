@@ -346,9 +346,24 @@ async function fetchStudentByIdentifier(identifier) {
 
 async function registerEventInStore(payload) {
   if (!db) throw new Error('Database connection is not configured.');
-  const { data, error } = await db.from('registrations').insert([payload]).select();
-  if (error) throw error;
-  return data?.[0] || null;
+
+  const candidatePayloads = [
+    payload,
+    Object.fromEntries(Object.entries(payload).filter(([key]) => !['batch'].includes(key))),
+    Object.fromEntries(Object.entries(payload).filter(([key]) => !['batch', 'year', 'phone'].includes(key)))
+  ];
+
+  let lastError = null;
+
+  for (const candidate of candidatePayloads) {
+    const { data, error } = await db.from('registrations').insert([candidate]).select();
+    if (!error) return data?.[0] || null;
+    lastError = error;
+    const message = String(error.message || '').toLowerCase();
+    if (!message.includes('column') && !message.includes('schema cache')) break;
+  }
+
+  throw lastError;
 }
 
 async function ensureUniqueRegistration(eventId, roll) {
