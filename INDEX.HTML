@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCELL GECWC — Startup Cell | GEC West Champaran, Bihar</title>
+  <meta name="description" content="Official Innovation and Entrepreneurship Platform of Government Engineering College, West Champaran. Build. Innovate. Launch.">
+  <meta name="theme-color" content="#030712">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SCELL GECWC — Innovation & Incubation Lab">
+  <meta property="og:description" content="Building an innovation and entrepreneurship ecosystem at GEC West Champaran, Bihar.">
+  <meta property="og:type" content="website">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#060B18',
+              surface: '#0B132B',
+              surfaceLight: '#F8FAFC',
+              cardDark: '#0D1829',
+              cardLight: '#FFFFFF',
+              electric: '#0066FF',
+              neon: '#00F0FF',
+              emerald: '#10B981',
+              accent: '#6366F1'
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'IBM Plex Mono', 'monospace'],
+            sans: ['Space Grotesk', 'Inter', 'sans-serif'],
+            editorial: ['Cabinet Grotesk', 'Space Grotesk', 'sans-serif']
+          },
+          animation: {
+            'marquee': 'marquee 28s linear infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 6s ease-in-out infinite'
+          },
+          keyframes: {
+            marquee: {
+              '0%': { transform: 'translateX(0%)' },
+              '100%': { transform: 'translateX(-50%)' }
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-8px)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Lucide Icons -->
+    <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Supabase JS Client v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-brand-surfaceLight dark:bg-brand-navy text-slate-800 dark:text-slate-100 transition-colors duration-300 relative selection:bg-brand-electric selection:text-white">
+
+  <!-- Interactive Custom Cursor -->
+  <div id="cursor-dot" class="fixed top-0 left-0 w-2 h-2 rounded-full bg-brand-electric dark:bg-brand-neon hidden lg:block -translate-x-1/2 -translate-y-1/2"></div>
+  <div id="cursor-ring" class="fixed top-0 left-0 w-9 h-9 rounded-full border border-brand-electric/50 dark:border-brand-neon/50 flex items-center justify-center text-[9px] font-mono tracking-widest text-brand-electric dark:text-brand-neon hidden lg:flex -translate-x-1/2 -translate-y-1/2">
+    <span id="cursor-label" class="opacity-0 transition-opacity uppercase font-bold"></span>
+  </div>
+
+  <!-- Background Particle Field -->
+  <canvas id="bg-canvas" class="fixed inset-0 pointer-events-none z-0 opacity-40 dark:opacity-60"></canvas>
+
+  <!-- Bootloader Overlay -->
+  <div id="bootloader" class="fixed inset-0 z-[100000] bg-black text-emerald-400 font-mono flex flex-col items-center justify-center p-6 transition-opacity duration-700">
+    <div class="max-w-md w-full border border-emerald-500/30 p-6 rounded-lg bg-emerald-950/20 backdrop-blur shadow-2xl relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse"></div>
+      <div class="flex items-center justify-between text-xs text-emerald-500/70 border-b border-emerald-500/20 pb-3 mb-4">
+        <span>SCELL // GEC_WEST_CHAMPARAN</span>
+        <span class="animate-ping w-2 h-2 rounded-full bg-emerald-400"></span>
+      </div>
+      <div class="space-y-1.5 text-xs font-mono">
+        <p class="text-slate-400">&gt; BOOTING KERNEL: SCELL-OS v4.2.9</p>
+        <p class="text-slate-400">&gt; ESTABLISHING NODE CONNECT: BIHAR_STARTUP_HUB</p>
+        <p id="boot-status" class="text-emerald-300 font-semibold">&gt; VERIFYING PROTOCOLS... [OK]</p>
+      </div>
+      <div class="w-full bg-slate-900 h-1.5 rounded-full mt-6 overflow-hidden border border-emerald-500/20">
+        <div id="boot-bar" class="h-full bg-emerald-400 w-0 transition-all duration-700 ease-out"></div>
+      </div>
+      <div class="mt-4 flex justify-between items-center text-[11px] text-emerald-500/80">
+        <span id="boot-text">INITIALIZING SUBSYSTEMS...</span>
+        <span id="boot-percent">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <header id="main-nav" class="sticky top-0 z-50 transition-all duration-300 glass-nav border-b border-slate-200/70 dark:border-slate-800/80 bg-white/70 dark:bg-brand-navy/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <a href="#" onclick="navigate('home')" class="group flex items-center gap-3.5 focus:outline-none cursor-pointer" data-cursor="ROOT">
+        <div class="w-12 h-12 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm shadow-brand-electric/10 group-hover:scale-[1.02] transition-transform">
+          <img src="https://drive.google.com/uc?export=view&id=1-k34c7sBUgQASCo0RFQez7I3LCcS2pw2" alt="SCELL GECWC Logo" class="h-9 w-auto object-contain" />
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold tracking-tight text-lg font-editorial">SCELL</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-brand-electric dark:text-brand-neon border border-blue-500/20 font-bold">GECWC</span>
+          </div>
+          <span class="text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-mono">WEST CHAMPARAN</span>
+        </div>
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-1 font-mono text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300">
+        <button onclick="navigate('home')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer" data-route="home">Home</button>
+        <button onclick="navigate('events')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer" data-route="events">Events</button>
+        <button onclick="navigate('projects')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer" data-route="projects">Projects</button>
+        <button onclick="navigate('startups')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer" data-route="startups">Startups</button>
+        <button onclick="navigate('arena')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer flex items-center gap-1.5" data-route="arena">
+          <span>Arena</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        </button>
+        <button onclick="navigate('memories')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer" data-route="memories">Memories</button>
+        <button onclick="navigate('team')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer" data-route="team">Team</button>
+        <button onclick="navigate('about')" class="nav-btn px-3.5 py-2 rounded-md hover:text-brand-electric dark:hover:text-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer" data-route="about">About</button>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <button id="theme-toggle" aria-label="Toggle theme" class="w-9 h-9 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" data-cursor="THEME">
+          <i data-lucide="moon" class="w-4 h-4 hidden dark:block text-brand-neon"></i>
+          <i data-lucide="sun" class="w-4 h-4 block dark:hidden text-amber-500"></i>
+        </button>
+
+        <button onclick="navigate('admin')" title="Access Admin Console" class="w-9 h-9 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:border-brand-electric dark:hover:border-brand-neon hover:text-brand-electric dark:hover:text-brand-neon transition cursor-pointer" data-cursor="OPS">
+          <i data-lucide="shield" class="w-4 h-4"></i>
+        </button>
+
+        <div id="auth-btn-container">
+          <button onclick="openAuthModal('login')" class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-brand-electric to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-xs font-mono font-bold tracking-wider shadow-md shadow-brand-electric/25 hover:shadow-brand-electric/40 active:scale-95 transition-all cursor-pointer" data-cursor="PORTAL">
+            <i data-lucide="user" class="w-3.5 h-3.5"></i>
+            <span>LOGIN / REGISTER</span>
+          </button>
+        </div>
+
+        <button id="mobile-menu-btn" aria-label="Toggle Navigation Menu" class="lg:hidden w-10 h-10 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Menu Drawer -->
+  <div id="mobile-menu" class="fixed inset-0 z-40 bg-brand-surfaceLight/95 dark:bg-brand-navy/95 backdrop-blur-xl flex flex-col justify-between p-8 transform translate-x-full transition-transform duration-300 lg:hidden">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm">
+          <img src="https://drive.google.com/uc?export=view&id=1-k34c7sBUgQASCo0RFQez7I3LCcS2pw2" alt="SCELL GECWC Logo" class="h-8 w-auto object-contain" />
+        </div>
+        <span class="font-bold font-editorial text-lg tracking-wider">NAVIGATION</span>
+      </div>
+      <button id="mobile-close-btn" class="w-10 h-10 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="flex flex-col gap-4 py-6 font-editorial text-2xl font-bold">
+      <a href="#" onclick="mobileNav('home')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>01 // HOME</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('events')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>02 // EVENTS</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('projects')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>03 // PROJECTS</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('startups')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>04 // STARTUPS</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('arena')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>05 // SCELL ARENA</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('memories')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>06 // MEMORIES</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('team')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>07 // TEAM</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('about')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1"><span>08 // ABOUT SCELL</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+      <a href="#" onclick="mobileNav('admin')" class="hover:text-brand-electric dark:hover:text-brand-neon transition flex items-center justify-between py-1 text-emerald-400"><span>09 // ADMIN CONSOLE</span> <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i></a>
+    </div>
+
+    <div class="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+      <button onclick="mobileNav(null); openAuthModal('register');" class="w-full py-3.5 rounded-lg bg-brand-electric text-white font-mono font-bold tracking-wider text-sm flex items-center justify-center gap-2">
+        <span>LOGIN / REGISTER</span>
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+      <p class="text-center font-mono text-[11px] text-slate-500">Startup Cell · Govt. Engineering College, West Champaran</p>
+    </div>
+  </div>
+
+  <!-- Dynamic SPA Router Outlet -->
+  <main id="app" class="relative z-10 min-h-screen"></main>
+
+  <!-- Modal: Event Registration -->
+  <div id="reg-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-brand-surface border border-slate-300 dark:border-slate-700 rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8">
+      <button onclick="closeRegModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+
+      <div id="reg-form-container">
+        <div class="flex items-center gap-2 mb-2 font-mono text-xs text-brand-electric dark:text-brand-neon">
+          <span class="w-2 h-2 rounded-full bg-brand-neon animate-ping"></span>
+          <span>SCELL // DIRECT_ADMISSION_GATEWAY</span>
+        </div>
+        <h3 id="reg-event-title" class="text-2xl font-bold font-editorial mb-1">Register for Event</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 font-mono">Fill your verified institutional details. Your official registration slip will generate instantly.</p>
+
+        <form id="reg-form" onsubmit="handleRegistrationSubmit(event)" class="space-y-4">
+          <input type="hidden" id="reg-event-id" value="">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Full Name *</label>
+              <input type="text" id="reg-name" required placeholder="e.g. Anurag Kumar" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm focus:border-brand-electric focus:ring-1 focus:ring-brand-electric outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Institutional Roll No *</label>
+              <input type="text" id="reg-roll" required placeholder="e.g. 2310114002" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm focus:border-brand-electric focus:ring-1 focus:ring-brand-electric outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Official Email Address *</label>
+              <input type="email" id="reg-email" required placeholder="anurag@gecwc.ac.in" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm focus:border-brand-electric focus:ring-1 focus:ring-brand-electric outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">WhatsApp / Contact No *</label>
+              <input type="tel" id="reg-phone" required placeholder="+91 9876543210" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm focus:border-brand-electric focus:ring-1 focus:ring-brand-electric outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Branch *</label>
+              <select id="reg-branch" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm outline-none">
+                <option value="CSE">CSE (Computer Science)</option>
+                <option value="CSE-AI">CSE (AI & Machine Learning)</option>
+                <option value="ECE">ECE (Electronics)</option>
+                <option value="EE">EE (Electrical)</option>
+                <option value="ME">ME (Mechanical)</option>
+                <option value="CE">CE (Civil)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Semester *</label>
+              <select id="reg-sem" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm outline-none">
+                <option value="1st">1st Sem</option>
+                <option value="2nd">2nd Sem</option>
+                <option value="3rd">3rd Sem</option>
+                <option value="4th">4th Sem</option>
+                <option value="5th">5th Sem</option>
+                <option value="6th">6th Sem</option>
+                <option value="7th">7th Sem</option>
+                <option value="8th">8th Sem</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Participation Type</label>
+              <select id="reg-mode" onchange="toggleTeamField(this.value)" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm outline-none">
+                <option value="Individual">Individual Entry</option>
+                <option value="Team">Team Representative</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="team-name-group" class="hidden">
+            <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Team Name & Member Count</label>
+            <input type="text" id="reg-team-name" placeholder="e.g. Innovators GECWC (3 Members)" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">Expectation / Innovation Problem You're Tackling</label>
+            <textarea id="reg-notes" rows="2" placeholder="Briefly describe what you're building or hoping to gain..." class="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm outline-none"></textarea>
+          </div>
+
+          <div id="reg-error" class="hidden p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono"></div>
+
+          <button type="submit" class="w-full py-3.5 mt-2 rounded-xl bg-gradient-to-r from-brand-electric to-brand-neon hover:opacity-95 text-white font-mono font-bold tracking-wider text-sm flex items-center justify-center gap-2 shadow-lg shadow-brand-electric/30 cursor-pointer">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span>COMPLETE & GENERATE SCELL PASS</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Registration Pass Display -->
+      <div id="reg-success-slip" class="hidden text-center py-4">
+        <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="check" class="w-8 h-8"></i>
+        </div>
+        <span class="text-xs font-mono uppercase tracking-widest text-emerald-500 font-bold">// ADMITTED TO ROSTER</span>
+        <h3 class="text-2xl font-bold font-editorial mt-1">Registration Verified!</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">Record permanently logged to SCELL GECWC Registry.</p>
+
+        <div id="printable-pass" class="mt-6 border-2 border-dashed border-brand-electric/40 rounded-xl p-5 bg-slate-50 dark:bg-brand-cardDark text-left font-mono relative overflow-hidden">
+          <div class="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase">STARTUP CELL · GEC WEST CHAMPARAN</p>
+              <h4 id="slip-event-name" class="font-bold font-editorial text-lg text-slate-900 dark:text-white">Drone Technology Workshop</h4>
+            </div>
+            <span class="px-2 py-1 rounded bg-brand-electric/10 text-brand-electric text-[10px] font-bold border border-brand-electric/20">VERIFIED PASS</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span class="text-slate-400 block text-[10px]">CANDIDATE:</span>
+              <span id="slip-name" class="font-bold">Anurag Kumar</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">REGISTRATION ID:</span>
+              <span id="slip-id" class="font-bold text-brand-electric dark:text-brand-neon">SCELL-2026-8812</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">ROLL NUMBER:</span>
+              <span id="slip-roll" class="font-bold">2310114002</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">BRANCH & SEM:</span>
+              <span id="slip-dept" class="font-bold">CSE · 4th Sem</span>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <span>ISSUED: 26 SEP 2026</span>
+            <span class="text-brand-emerald font-bold">● ACTIVE ON DECK</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 mt-6">
+          <button onclick="downloadSlipMock()" class="flex-1 py-3 rounded-lg bg-brand-electric text-white font-mono text-xs font-bold tracking-wider flex items-center justify-center gap-2 hover:bg-blue-600 transition cursor-pointer">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>PRINT / SAVE SLIP</span>
+          </button>
+          <button onclick="closeRegModal()" class="py-3 px-6 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-mono text-xs cursor-pointer">
+            RETURN
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Portal Modal: Login & Registration -->
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-brand-surface border border-slate-300 dark:border-slate-700 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-6">
+      <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white cursor-pointer">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
+        <div class="flex gap-2">
+          <button id="tab-login-btn" onclick="switchAuthTab('login')" class="px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer bg-brand-electric text-white shadow-md shadow-brand-electric/25">
+            Student Login
+          </button>
+          <button id="tab-register-btn" onclick="switchAuthTab('register')" class="px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white">
+            New Registration
+          </button>
+        </div>
+        <span class="text-[10px] font-mono text-brand-neon hidden sm:inline">// SCELL_CADRE_GATEWAY</span>
+      </div>
+
+      <div id="auth-login-view" class="space-y-4">
+        <div>
+          <h3 class="text-2xl font-bold font-editorial">Cadre Login</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">Access your registered events, Arena XP credentials and workshop passes.</p>
+        </div>
+
+        <form onsubmit="handleStudentLogin(event)" class="space-y-4 font-mono text-xs mt-4">
+          <div>
+            <label class="block text-slate-400 mb-1">Institutional Roll No or Email *</label>
+            <input type="text" id="login-identifier" required placeholder="e.g. 2310114002 or name@gecwc.ac.in" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Password *</label>
+            <input type="password" id="login-password" required placeholder="••••••••••••" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+          </div>
+
+          <div id="login-error" class="hidden p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-center text-[11px]"></div>
+
+          <button type="submit" class="w-full py-3 rounded-xl bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider uppercase transition cursor-pointer shadow-lg shadow-brand-electric/30">
+            LOGIN TO PROFILE
+          </button>
+
+          <p class="text-center text-slate-500 text-[11px] pt-2">
+            New to SCELL GECWC? <a href="#" onclick="switchAuthTab('register')" class="text-brand-electric dark:text-brand-neon hover:underline font-bold">Create Account</a>
+          </p>
+        </form>
+      </div>
+
+      <div id="auth-register-view" class="hidden space-y-4">
+        <div>
+          <h3 class="text-2xl font-bold font-editorial">Cadre Membership Registration</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">Join the official startup, incubation & hardware cohort at GEC West Champaran.</p>
+        </div>
+
+        <form onsubmit="handleStudentRegister(event)" class="space-y-4 font-mono text-xs max-h-[62vh] overflow-y-auto pr-1">
+          <div class="flex items-center gap-4 p-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40">
+            <div class="w-16 h-20 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 overflow-hidden flex items-center justify-center shrink-0" id="photo-preview-box">
+              <i data-lucide="image" class="w-6 h-6 text-slate-400"></i>
+            </div>
+            <div class="flex-1">
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">Passport Size Photo *</label>
+              <input type="file" id="reg-photo-file" accept="image/*" required onchange="handlePhotoUpload(event)" class="text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-mono file:bg-brand-electric file:text-white file:cursor-pointer">
+              <span class="text-[9px] text-slate-500 block mt-1">Recommended: 3.5cm x 4.5cm white/blue background.</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-400 mb-1">Full Candidate Name *</label>
+              <input type="text" id="reg-student-name" required placeholder="e.g. Anurag Kumar" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Institutional Roll No *</label>
+              <input type="text" id="reg-student-roll" required placeholder="e.g. 2310114002" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-400 mb-1">Engineering Discipline / Branch *</label>
+            <select id="reg-student-branch" required class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+              <option value="Computer Science & Engineering (CSE)">Computer Science & Engineering (CSE)</option>
+              <option value="Computer Science & Engineering - Cyber Security (CSE-CS)">Computer Science & Engineering - Cyber Security (CSE-CS)</option>
+              <option value="Electronics & Communication Engineering (ECE)">Electronics & Communication Engineering (ECE)</option>
+              <option value="VLSI Design & Technology (ECE-VLSI)">VLSI Design & Technology (ECE-VLSI)</option>
+              <option value="Electrical Engineering (EE)">Electrical Engineering (EE)</option>
+              <option value="Mechanical Engineering (ME)">Mechanical Engineering (ME)</option>
+              <option value="Civil Engineering (CE)">Civil Engineering (CE)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-slate-400 mb-1">Batch *</label>
+              <select id="reg-student-batch" class="w-full px-2.5 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+                <option value="2022-2026">2022 — 2026</option>
+                <option value="2023-2027">2023 — 2027</option>
+                <option value="2024-2028">2024 — 2028</option>
+                <option value="2025-2029">2025 — 2029</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Academic Year *</label>
+              <select id="reg-student-year" class="w-full px-2.5 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Semester *</label>
+              <select id="reg-student-sem" class="w-full px-2.5 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+                <option value="1st Sem">1st Sem</option>
+                <option value="2nd Sem">2nd Sem</option>
+                <option value="3rd Sem">3rd Sem</option>
+                <option value="4th Sem">4th Sem</option>
+                <option value="5th Sem">5th Sem</option>
+                <option value="6th Sem">6th Sem</option>
+                <option value="7th Sem">7th Sem</option>
+                <option value="8th Sem">8th Sem</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-400 mb-1">Official Email Address *</label>
+              <input type="email" id="reg-student-email" required placeholder="name@gecwc.ac.in" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">WhatsApp / Contact Mobile *</label>
+              <input type="tel" id="reg-student-mobile" required placeholder="+91 9876543210" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-400 mb-1">Specialization Interest</label>
+              <select id="reg-student-domain" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+                <option value="Hardware, IoT & Drones">Hardware, IoT & Drones</option>
+                <option value="Software & Artificial Intelligence">Software & Artificial Intelligence</option>
+                <option value="Venture & Business Pitching">Venture & Business Pitching</option>
+                <option value="Design, Branding & PR">Design, Branding & PR</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Create Account Password *</label>
+              <input type="password" id="reg-student-password" required placeholder="Minimum 6 characters" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+            </div>
+          </div>
+
+          <div id="register-error" class="hidden p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-center text-[11px]"></div>
+
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-electric to-brand-neon hover:opacity-95 text-white font-bold tracking-wider uppercase transition cursor-pointer shadow-lg shadow-brand-electric/30">
+            COMPLETE REGISTRATION & JOIN SCELL
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Lightbox -->
+  <div id="lightbox" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white hover:text-brand-neon cursor-pointer">
+      <i data-lucide="x" class="w-8 h-8"></i>
+    </button>
+    <div class="max-w-4xl w-full">
+      <img id="lightbox-img" src="" alt="SCELL Memory Preview" class="w-full max-h-[75vh] object-contain rounded-lg border border-slate-800 shadow-2xl">
+      <div class="mt-4 flex justify-between items-center text-slate-300 font-mono text-xs">
+        <span id="lightbox-caption" class="text-white font-bold text-sm">Event Memory</span>
+        <span id="lightbox-tag" class="px-2 py-1 bg-brand-electric/20 text-brand-neon rounded">SCELL ARCHIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Hub -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-brand-surfaceLight dark:bg-brand-surface border border-brand-electric/40 text-slate-900 dark:text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 font-mono text-xs">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span id="toast-msg">Operation completed successfully.</span>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

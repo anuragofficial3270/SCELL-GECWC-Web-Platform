@@ -1,0 +1,22 @@
+<svg width="720" height="220" viewBox="0 0 720 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="50%" stop-color="#0066FF"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E2F3FF"/>
+      <stop offset="100%" stop-color="#BFE7FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="14" y="14" width="192" height="192" rx="46" fill="url(#g1)"/>
+  <path d="M76 58C90 49 110 44 128 44C152 44 170 51 182 64C194 76 200 92 200 108C200 126 193 141 177 153C165 162 151 167 130 170L98 174L94 152H127C149 152 164 147 171 136C178 125 178 114 170 104C162 94 149 88 128 88H100C82 88 69 94 62 105C55 116 55 128 61 139C69 154 86 163 112 168L155 178C158 180 160 185 160 190V193H85C70 193 57 188 47 178C37 168 32 155 32 139C32 108 45 83 70 66L76 58Z" fill="#EAFBFF"/>
+  <path d="M111 47L141 47C159 47 175 50 188 58C201 66 210 79 214 97L196 106C192 89 183 79 170 72L157 66H112L99 77L123 101H147C161 101 173 104 182 109C191 114 197 123 197 136C197 149 191 159 180 167C169 175 154 180 137 180H97L89 160H133C146 160 156 157 163 150C169 144 171 136 168 129C165 122 157 118 143 118H107L79 90L111 47Z" fill="url(#g2)"/>
+  <rect x="228" y="46" width="12" height="128" rx="6" fill="#F5FBFF" fill-opacity="0.9"/>
+  <text x="260" y="112" fill="#F5FBFF" font-family="Segoe UI, Arial, sans-serif" font-size="66" font-weight="800" letter-spacing="2">SCELL</text>
+  <text x="260" y="160" fill="#8ACFFF" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="8">GECWC</text>
+  <path d="M574 58H648C656 58 663 65 663 73V78C663 86 656 93 648 93H574C566 93 559 86 559 78V73C559 65 566 58 574 58Z" fill="#00F0FF" fill-opacity="0.75"/>
+  <path d="M574 98H679C687 98 694 105 694 113V118C694 126 687 133 679 133H574C566 133 559 126 559 118V113C559 105 566 98 574 98Z" fill="#00F0FF" fill-opacity="0.45"/>
+  <path d="M574 138H638C646 138 653 145 653 153V158C653 166 646 173 638 173H574C566 173 559 166 559 158V153C559 145 566 138 574 138Z" fill="#00F0FF" fill-opacity="0.25"/>
+</svg>

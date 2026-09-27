@@ -1,0 +1,271 @@
+// Supabase Live Credentials Connected
+const SUPABASE_URL = "https://evcslijagfygsnkirrpc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_52yxCR78Mo40JSL_UNMTmQ_t1D6qAtJ";
+
+// Initialize Supabase Client directly via CDN library
+const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// Master In-Memory Dataset
+const SCELL_DATA = {
+  stats: {
+    eventsCount: 0,
+    studentsCount: 650,
+    projectsCount: 3,
+    startupsCount: 3,
+    grantsAwarded: "₹ 14.5L"
+  },
+  events: [],
+  registrations: [],
+  projects: [
+    {
+      id: "PRJ-01",
+      name: "GandakHydro: IoT Flood Early-Warning Telemetry",
+      category: "IoT / EMBEDDED",
+      status: "TESTING IN RIVER BASIN",
+      team: ["Anurag Kumar (CSE)", "Sneha Roy (ECE)", "Amit Patel (EE)"],
+      problem: "Seasonal flooding of the Gandak River causes severe damage to West Champaran crops without real-time upstream surge notifications.",
+      solution: "Solar-powered LoRa mesh nodes deployed along embankment stations sending millimetric water level and flow telemetry to local panchayats.",
+      techStack: ["ESP32", "LoRaWAN 868MHz", "TimescaleDB", "Tailwind/Next.js", "FreeRTOS"],
+      github: "https://github.com",
+      demo: "#",
+      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop"
+    },
+    {
+      id: "PRJ-02",
+      name: "AgriVision AI: Cane Leaf Disease Classifier",
+      category: "AI / COMPUTER VISION",
+      status: "PILOT AT MAJHUALIA",
+      team: ["Vikash Mehta (CSE-AI)", "Pooja Kumari (CSE)"],
+      problem: "Sugarcane red rot disease in Bihar goes unnoticed until 40% of the yield is permanently damaged.",
+      solution: "Offline edge-inference mobile application running a quantized MobileNetV3 model to spot fungal spots in under 200 milliseconds.",
+      techStack: ["TensorFlow Lite", "Python", "Flutter", "FastAPI"],
+      github: "https://github.com",
+      demo: "#",
+      image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800&auto=format&fit=crop"
+    },
+    {
+      id: "PRJ-03",
+      name: "VidyutRover: Low-Cost Agricultural EV Tiller",
+      category: "EV / HARDWARE",
+      status: "FABRICATION STAGE",
+      team: ["Ravi Shankar (ME)", "Prince Verma (EE)", "Alok Gupta (ECE)"],
+      problem: "Smallholder farmers cannot afford heavy 45HP diesel tractors for 1-acre fragmented farmlands.",
+      solution: "Modular 48V LiFePO4 battery-swappable electric power tiller with regenerative torque steering.",
+      techStack: ["BLDC Motor Controller", "SolidWorks", "CAN Bus", "Arduino"],
+      github: "https://github.com",
+      demo: "#",
+      image: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?q=80&w=800&auto=format&fit=crop"
+    }
+  ],
+  startups: [
+    {
+      id: "STP-01",
+      name: "Champaran AgroTech Solutions",
+      stage: "INCUBATED · SEED APPLIED",
+      founders: "Kunal Kashyap (Batch '24) & Priya Ranjan",
+      category: "AGRITECH LOGISTICS",
+      valuation: "₹ 1.2 Cr Target",
+      description: "Connecting sugarcane and banana cultivators directly with regional procurement mills through micro-warehousing cold lockers.",
+      achievements: "Winner of Bihar Innovation Challenge 2025; ₹3L prototype grant sanction."
+    },
+    {
+      id: "STP-02",
+      name: "DroneNirvaha Systems",
+      stage: "PILOT DEPLOYMENT",
+      founders: "Md. Tariq & Siddharth Anand",
+      category: "DRONE-AS-A-SERVICE",
+      valuation: "₹ 80 Lakhs",
+      description: "Precision pesticide mist spraying services and infrared land-boundary orthomosaic mapping for North Bihar farmers.",
+      achievements: "Cleared DGCA training protocol; 140+ acres serviced in Bettiah rural belt."
+    },
+    {
+      id: "STP-03",
+      name: "Edunova VR Labs",
+      stage: "PROTOTYPE TESTING",
+      founders: "Shweta Tiwari & Rahul Raj",
+      category: "EDTECH / IMMERSIVE",
+      valuation: "Bootstrapped",
+      description: "Ultra-low-cost cardboard VR science kits mapped to Bihar State Board secondary school curriculum.",
+      achievements: "Piloted across 4 government high schools in West Champaran."
+    }
+  ],
+  arena: {
+    leaderboard: [
+      { rank: 1, name: "Anurag Kumar", roll: "2310114002", xp: 1420, level: 9, badges: ["HACKATHON_CHAMP", "DRONE_MASTERY", "PATENT_FILED"] },
+      { rank: 2, name: "Sneha Roy", roll: "2310115018", xp: 1290, level: 8, badges: ["INNOVATOR", "CIRCUIT_WIZARD", "TEAM_LEAD"] },
+      { rank: 3, name: "Vikash Mehta", roll: "2310114045", xp: 1150, level: 8, badges: ["AI_RESEARCHER", "HACKATHON_CHAMP"] },
+      { rank: 4, name: "Pooja Kumari", roll: "2310114031", xp: 980, level: 7, badges: ["IDEA_BUILDER", "WORKSHOP_MASTER"] },
+      { rank: 5, name: "Ravi Shankar", roll: "2310112009", xp: 870, level: 6, badges: ["EV_PIONEER", "HARDWARE_HACK"] }
+    ],
+    badgeCatalog: [
+      { id: "HACKATHON_CHAMP", title: "Hackathon Victor", desc: "Top 3 placement in state-recognized hackathons." },
+      { id: "DRONE_MASTERY", title: "Drone Aviator", desc: "Completed 40 hours of flight telemetry workshops." },
+      { id: "INNOVATOR", title: "Prototype Builder", desc: "Fabricated hardware or launched deployed software at SCELL." },
+      { id: "PATENT_FILED", title: "IP Creator", desc: "Submitted provisional patent or design registration." }
+    ]
+  },
+  team: {
+    faculty: [
+      {
+        name: "Mr. Om Prakash Ram",
+        designation: "Faculty Incharge, Startup Cell",
+        org: "Government Engineering College, West Champaran",
+        description: "Guiding institutional innovation strategy, entrepreneurship mentorship, and student-led prototype development across the campus ecosystem.",
+        image: "",
+        status: "ACTIVE",
+        badge: "FACULTY NODE"
+      }
+    ],
+    districtCoordinator: {
+      name: "Mr. Kumar Yashraj",
+      designation: "District Startup Coordinator",
+      org: "Startup Cell, GECWC",
+      description: "Connecting student innovation with district-level startup opportunities, ecosystem outreach, and policy-driven incubation support.",
+      image: "",
+      status: "ACTIVE",
+      badge: "DISTRICT NODE"
+    },
+    studentRepresentatives: [
+      {
+        name: "Pratik Raj",
+        batch: "2K23",
+        role: "Student Representative",
+        image: "",
+        status: "ACTIVE",
+        badge: "STUDENT REPRESENTATIVE"
+      },
+      {
+        name: "Ananya Priya",
+        batch: "2K23",
+        role: "Student Representative",
+        image: "",
+        status: "ACTIVE",
+        badge: "STUDENT REPRESENTATIVE"
+      }
+    ],
+    leads: [
+      {
+        name: "Pratik Raj",
+        batch: "2K23",
+        role: "Student Representative",
+        image: "",
+        status: "ACTIVE",
+        badge: "STUDENT REPRESENTATIVE"
+      },
+      {
+        name: "Ananya Priya",
+        batch: "2K23",
+        role: "Student Representative",
+        image: "",
+        status: "ACTIVE",
+        badge: "STUDENT REPRESENTATIVE"
+      }
+    ],
+    developedBy: {
+      name: "Anurag Kumar",
+      branch: "Electrical Engineering",
+      batch: "2K24 / 2024–2028",
+      role: "Student Coordinator | Startup Cell, GECWC",
+      image: "",
+      status: "SYSTEM ARCHITECT",
+      badge: "PLATFORM BUILDER",
+      description: "Designed and built the SCELL digital command layer for student engagement, campus innovation workflows, and startup ecosystem visibility."
+    }
+  },
+  memories: [
+    { id: 1, title: "Drone Calibration & Autonomous Test Flight", tag: "WORKSHOP", date: "FEB 2026", img: "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?q=80&w=800&auto=format&fit=crop" },
+    { id: 2, title: "Bihar Startup Conclave Delegation Pitch", tag: "STARTUP", date: "DEC 2025", img: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=800&auto=format&fit=crop" },
+    { id: 3, title: "Hardware Circuit Soldering & PCB Assembly", tag: "HACKATHON", date: "NOV 2025", img: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800&auto=format&fit=crop" },
+    { id: 4, title: "National Science Day Innovation Showcase", tag: "EXHIBITION", date: "FEB 2026", img: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop" },
+    { id: 5, title: "Design Sprint & Ideation Blackboard Session", tag: "BRAINSTORM", date: "OCT 2025", img: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop" },
+    { id: 6, title: "Industrial Mentor Round with Senior Engineers", tag: "MENTORSHIP", date: "SEP 2025", img: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800&auto=format&fit=crop" }
+  ]
+};
+
+function hydrateTeamDirectory() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('scell_team_directory_v1') || 'null');
+    if (!saved) return;
+
+    if (saved.faculty) SCELL_DATA.team.faculty = saved.faculty;
+    if (saved.districtCoordinator) SCELL_DATA.team.districtCoordinator = saved.districtCoordinator;
+    if (saved.studentRepresentatives) SCELL_DATA.team.studentRepresentatives = saved.studentRepresentatives;
+    if (saved.developedBy) SCELL_DATA.team.developedBy = saved.developedBy;
+    SCELL_DATA.team.leads = SCELL_DATA.team.studentRepresentatives;
+  } catch (err) {
+    console.warn('Team directory hydrate failed:', err);
+  }
+}
+
+function saveTeamDirectory() {
+  try {
+    const payload = {
+      faculty: SCELL_DATA.team.faculty,
+      districtCoordinator: SCELL_DATA.team.districtCoordinator,
+      studentRepresentatives: SCELL_DATA.team.studentRepresentatives,
+      developedBy: SCELL_DATA.team.developedBy
+    };
+    localStorage.setItem('scell_team_directory_v1', JSON.stringify(payload));
+    SCELL_DATA.team.leads = SCELL_DATA.team.studentRepresentatives;
+  } catch (err) {
+    console.warn('Team directory save failed:', err);
+  }
+}
+
+// Sync live data from Supabase PostgreSQL
+async function syncFromCloud() {
+  if (!db) return;
+
+  try {
+    const { data: eventsData, error: evErr } = await db
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!evErr && eventsData) {
+      SCELL_DATA.events = eventsData.map(e => ({
+        id: e.id,
+        title: e.title,
+        category: e.category || 'WORKSHOP',
+        status: e.status || 'UPCOMING',
+        featured: e.featured || false,
+        date: e.event_date || 'TBA',
+        time: e.time || '10:00 AM IST',
+        venue: e.venue || 'GECWC Campus',
+        collaborator: e.collaborator || 'SCELL GECWC',
+        poster: e.poster_url || "https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=1200&auto=format&fit=crop",
+        rulebook: e.rulebook_url || "",
+        registrationOpen: e.registration_open ?? true,
+        seatsTotal: e.seats_total || 100,
+        seatsFilled: e.seats_filled || 0,
+        badge: e.badge || (e.status === 'UPCOMING' ? 'ACTIVE' : 'ARCHIVED'),
+        description: e.description || "Official Event organized by Startup Cell, GEC West Champaran.",
+        winners: e.winners || [],
+        gallery: e.gallery_urls || []
+      }));
+
+      SCELL_DATA.stats.eventsCount = SCELL_DATA.events.length;
+    }
+
+    const { data: regData, error: regErr } = await db
+      .from('registrations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!regErr && regData) {
+      SCELL_DATA.registrations = regData.map(r => ({
+        id: r.id,
+        eventId: r.event_id,
+        eventName: r.event_name,
+        name: r.name,
+        roll: r.roll,
+        email: r.email,
+        branch: r.branch,
+        sem: r.sem,
+        status: "CONFIRMED"
+      }));
+    }
+  } catch (err) {
+    console.error("Cloud Sync Exception:", err);
+  }
+}
