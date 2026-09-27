@@ -8,6 +8,13 @@ const SCELL_APP_STATE = {
   pendingRole: null
 };
 
+const SCELL_ADMIN_STATE = {
+  activeTab: 'missions',
+  editingEventId: null,
+  editingTeamMemberId: null,
+  contentSection: 'home'
+};
+
 async function initApp() {
   if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
     document.documentElement.classList.remove('dark');
@@ -21,8 +28,10 @@ async function initApp() {
   }
 
   runBootSequence();
+  hydratePersistedScellData();
   await syncFromCloud();
   hydrateTeamDirectory();
+  savePersistedScellData();
   updateAuthNavbar();
   renderRoute(currentRoute);
   initCanvas();
@@ -320,78 +329,298 @@ async function handleRegistrationSubmit(e) {
   }
 }
 
-/* Event Creation via Admin Panel */
+function setAdminTab(tab) {
+  SCELL_ADMIN_STATE.activeTab = tab;
+  renderRoute('admin');
+}
+
+function formatEventDates(startDate, endDate) {
+  if (!startDate) return 'TBA';
+  const start = new Date(startDate + 'T00:00:00');
+  if (!endDate || endDate === startDate) return start.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const end = new Date(endDate + 'T00:00:00');
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    return `${start.getDate()} – ${end.getDate()} ${start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`;
+  }
+  return `${start.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })} – ${end.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}`;
+}
+
+function formatEventTime(startTime, endTime) {
+  if (!startTime) return 'TBA';
+  const format = (value) => {
+    if (!value) return '';
+    const [hours, minutes] = value.split(':').map(Number);
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = ((hours + 11) % 12) + 1;
+    return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  };
+
+  if (!endTime) return format(startTime);
+  return `${format(startTime)} – ${format(endTime)}`;
+}
+
+function getEventById(eventId) {
+  return SCELL_DATA.events.find(event => event.id === eventId) || null;
+}
+
+function prefillEventEditor(eventId) {
+  const event = getEventById(eventId);
+  if (!event) return;
+
+  SCELL_ADMIN_STATE.editingEventId = eventId;
+  const fields = {
+    'ev-add-title': event.title || '',
+    'ev-add-category': event.category || 'WORKSHOP',
+    'ev-add-start-date': event.startDate || '',
+    'ev-add-end-date': event.endDate || '',
+    'ev-add-start-time': event.startTime || '',
+    'ev-add-end-time': event.endTime || '',
+    'ev-add-venue': event.venue || '',
+    'ev-add-map-url': event.mapUrl || '',
+    'ev-add-poster': event.poster || '',
+    'ev-add-rulebook': event.rulebook || '',
+    'ev-add-short-desc': event.shortDescription || event.description || '',
+    'ev-add-full-desc': event.fullDescription || event.description || '',
+    'ev-add-eligibility': event.eligibility || '',
+    'ev-add-rules': event.rules || '',
+    'ev-add-reg-open': event.registrationOpen ? 'open' : 'closed',
+    'ev-add-reg-start': event.registrationStart || '',
+    'ev-add-reg-deadline': event.registrationDeadline || '',
+    'ev-add-max-participants': event.maxParticipants || 100,
+    'ev-add-participation-type': event.participationType || 'Individual',
+    'ev-add-max-team-size': event.maxTeamSize || 4,
+    'ev-add-status': event.status || 'UPCOMING'
+  };
+
+  Object.entries(fields).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  });
+
+  const saveBtn = document.getElementById('publish-event-btn');
+  if (saveBtn) saveBtn.textContent = 'UPDATE EVENT';
+}
+
+function resetEventEditor() {
+  SCELL_ADMIN_STATE.editingEventId = null;
+  const ids = [
+    'ev-add-title', 'ev-add-category', 'ev-add-start-date', 'ev-add-end-date', 'ev-add-start-time', 'ev-add-end-time',
+    'ev-add-venue', 'ev-add-map-url', 'ev-add-poster', 'ev-add-rulebook', 'ev-add-short-desc', 'ev-add-full-desc',
+    'ev-add-eligibility', 'ev-add-rules', 'ev-add-reg-open', 'ev-add-reg-start', 'ev-add-reg-deadline', 'ev-add-max-participants',
+    'ev-add-participation-type', 'ev-add-max-team-size', 'ev-add-status'
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (el.tagName === 'SELECT') el.value = el.options[0]?.value || '';
+      else el.value = '';
+    }
+  });
+  const saveBtn = document.getElementById('publish-event-btn');
+  if (saveBtn) saveBtn.textContent = 'PUBLISH EVENT LIVE';
+}
+
 async function handleCreateEventSubmit(e) {
   e.preventDefault();
-  const title = document.getElementById('ev-add-title').value.trim();
-  const category = document.getElementById('ev-add-category').value;
-  const date = document.getElementById('ev-add-date').value.trim();
-  const time = document.getElementById('ev-add-time').value.trim();
-  const venue = document.getElementById('ev-add-venue').value.trim();
-  const poster = document.getElementById('ev-add-poster').value.trim();
-  const rulebook = document.getElementById('ev-add-rulebook').value.trim();
-  const description = document.getElementById('ev-add-desc').value.trim();
+  const title = document.getElementById('ev-add-title')?.value.trim();
+  const category = document.getElementById('ev-add-category')?.value || 'WORKSHOP';
+  const startDate = document.getElementById('ev-add-start-date')?.value || '';
+  const endDate = document.getElementById('ev-add-end-date')?.value || '';
+  const startTime = document.getElementById('ev-add-start-time')?.value || '';
+  const endTime = document.getElementById('ev-add-end-time')?.value || '';
+  const venue = document.getElementById('ev-add-venue')?.value.trim();
+  const mapUrl = document.getElementById('ev-add-map-url')?.value.trim();
+  const poster = document.getElementById('ev-add-poster')?.value.trim();
+  const rulebook = document.getElementById('ev-add-rulebook')?.value.trim();
+  const shortDescription = document.getElementById('ev-add-short-desc')?.value.trim();
+  const fullDescription = document.getElementById('ev-add-full-desc')?.value.trim();
+  const eligibility = document.getElementById('ev-add-eligibility')?.value.trim();
+  const rules = document.getElementById('ev-add-rules')?.value.trim();
+  const regOpen = document.getElementById('ev-add-reg-open')?.value === 'open';
+  const regStart = document.getElementById('ev-add-reg-start')?.value || '';
+  const regDeadline = document.getElementById('ev-add-reg-deadline')?.value || '';
+  const maxParticipants = Number(document.getElementById('ev-add-max-participants')?.value || 100);
+  const participationType = document.getElementById('ev-add-participation-type')?.value || 'Individual';
+  const maxTeamSize = Number(document.getElementById('ev-add-max-team-size')?.value || 4);
+  const status = document.getElementById('ev-add-status')?.value || 'UPCOMING';
 
-  const { error } = await db.from('events').insert([{
+  if (!title || !venue) {
+    showToast('Please fill the required event title and venue.');
+    return;
+  }
+
+  const eventDates = {
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    date: formatEventDates(startDate, endDate),
+    time: formatEventTime(startTime, endTime)
+  };
+
+  const existing = SCELL_DATA.events.find(event => event.id === SCELL_ADMIN_STATE.editingEventId);
+  const nextEvent = {
+    id: existing ? existing.id : `EV-${Date.now().toString(36).toUpperCase()}`,
     title,
     category,
-    event_date: date,
-    time,
+    status,
+    registrationOpen: regOpen,
+    registrationStart: regStart,
+    registrationDeadline: regDeadline,
+    maxParticipants,
+    participationType,
+    maxTeamSize,
     venue,
-    poster_url: poster,
-    rulebook_url: rulebook,
-    description,
-    registration_open: true,
-    status: 'UPCOMING'
-  }]);
+    mapUrl,
+    poster: poster || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop',
+    rulebook,
+    description: shortDescription || fullDescription || 'Official SCELL mission for the campus innovation ecosystem.',
+    fullDescription: fullDescription || shortDescription,
+    shortDescription: shortDescription || fullDescription,
+    eligibility: eligibility || 'Open to GECWC students and community participants as applicable.',
+    rules: rules || 'Follow all campus rules and event instructions.',
+    date: eventDates.date,
+    time: eventDates.time,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    featured: existing ? existing.featured : false,
+    seatsTotal: maxParticipants,
+    seatsFilled: existing ? existing.seatsFilled || 0 : 0,
+    winners: existing ? existing.winners || [] : [],
+    gallery: existing ? existing.gallery || [] : []
+  };
 
-  if (!error) {
-    showToast("Event published live to website!");
-    await syncFromCloud();
-    renderRoute('admin');
+  if (existing) {
+    const index = SCELL_DATA.events.findIndex(item => item.id === existing.id);
+    SCELL_DATA.events[index] = nextEvent;
   } else {
-    alert("Publish failed: " + error.message);
+    SCELL_DATA.events.unshift(nextEvent);
   }
+
+  SCELL_DATA.stats.eventsCount = SCELL_DATA.events.length;
+  savePersistedScellData();
+
+  if (db) {
+    try {
+      const payload = {
+        id: nextEvent.id,
+        title: nextEvent.title,
+        category: nextEvent.category,
+        status: nextEvent.status,
+        event_date: nextEvent.startDate || nextEvent.date,
+        time: nextEvent.time,
+        venue: nextEvent.venue,
+        poster_url: nextEvent.poster,
+        rulebook_url: nextEvent.rulebook,
+        description: nextEvent.description,
+        registration_open: nextEvent.registrationOpen,
+        seats_total: nextEvent.seatsTotal,
+        seats_filled: nextEvent.seatsFilled,
+        badge: nextEvent.status,
+        winners: nextEvent.winners || [],
+        gallery_urls: nextEvent.gallery || [],
+        updated_at: new Date().toISOString()
+      };
+      if (existing) {
+        await db.from('events').upsert(payload, { onConflict: 'id' });
+      } else {
+        await db.from('events').insert(payload);
+      }
+    } catch (error) {
+      console.warn('Supabase event sync warning:', error);
+    }
+  }
+
+  showToast(existing ? 'Event updated successfully.' : 'Event published live to website.');
+  resetEventEditor();
+  renderRoute('admin');
 }
 
-/* Admin: Toggle Registration Status */
 async function toggleEventRegistration(eventId, newStatus) {
-  const { error } = await db
-    .from('events')
-    .update({ registration_open: newStatus, status: newStatus ? 'UPCOMING' : 'CLOSED' })
-    .eq('id', eventId);
+  const event = SCELL_DATA.events.find(item => item.id === eventId);
+  if (!event) return;
 
-  if (!error) {
-    showToast("Registration status updated!");
-    await syncFromCloud();
-    renderRoute('admin');
+  event.registrationOpen = newStatus;
+  event.status = newStatus ? (event.status === 'COMPLETED' ? 'COMPLETED' : 'UPCOMING') : 'REGISTRATION CLOSED';
+  savePersistedScellData();
+
+  if (db) {
+    try {
+      await db.from('events').update({ registration_open: newStatus, status: event.status, updated_at: new Date().toISOString() }).eq('id', eventId);
+    } catch (error) {
+      console.warn('Registration sync warning:', error);
+    }
   }
+
+  showToast('Registration status updated.');
+  renderRoute('admin');
 }
 
-/* Admin: Mark Completed with Winners */
 async function markEventCompleted(eventId) {
-  const winner1 = prompt("Rank 1 Team / Student Name:");
-  if (!winner1) return;
-  const photoUrl = prompt("Enter 1 recap photo URL (optional):") || "";
+  const event = SCELL_DATA.events.find(item => item.id === eventId);
+  if (!event) return;
 
-  const winnersArr = [{ rank: 1, name: winner1, project: "Champion" }];
-  const galleryArr = photoUrl ? [photoUrl] : [];
+  const winnerName = prompt('Enter winner name or winning team:', event.title) || 'Winner';
+  event.status = 'COMPLETED';
+  event.registrationOpen = false;
+  event.winners = [{ rank: 1, name: winnerName, project: event.title }];
+  savePersistedScellData();
 
-  const { error } = await db
-    .from('events')
-    .update({ 
-      status: 'COMPLETED', 
-      registration_open: false,
-      winners: winnersArr,
-      gallery_urls: galleryArr
-    })
-    .eq('id', eventId);
-
-  if (!error) {
-    showToast("Event completed & winners published!");
-    await syncFromCloud();
-    renderRoute('admin');
+  if (db) {
+    try {
+      await db.from('events').update({ status: 'COMPLETED', registration_open: false, winners: event.winners, updated_at: new Date().toISOString() }).eq('id', eventId);
+    } catch (error) {
+      console.warn('Completion sync warning:', error);
+    }
   }
+
+  showToast('Event marked completed.');
+  renderRoute('admin');
+}
+
+function duplicateEvent(eventId) {
+  const event = getEventById(eventId);
+  if (!event) return;
+  const cloned = { ...event, id: `EV-${Date.now().toString(36).toUpperCase()}`, title: `${event.title} (Copy)` };
+  SCELL_DATA.events.unshift(cloned);
+  savePersistedScellData();
+  showToast('Event duplicated.');
+  renderRoute('admin');
+}
+
+function deleteEvent(eventId) {
+  const ok = window.confirm('Delete this event permanently from the SCELL command hub?');
+  if (!ok) return;
+
+  SCELL_DATA.events = SCELL_DATA.events.filter(item => item.id !== eventId);
+  savePersistedScellData();
+  if (db) {
+    try { db.from('events').delete().eq('id', eventId); } catch (error) { console.warn('Delete event warning:', error); }
+  }
+  showToast('Event deleted successfully.');
+  renderRoute('admin');
+}
+
+function exportRegistrationsCSV() {
+  const rows = [
+    ['ID', 'Event', 'Name', 'Roll', 'Email', 'Branch', 'Semester', 'Status']
+  ];
+  SCELL_DATA.registrations.forEach(reg => {
+    rows.push([reg.id, reg.eventName || '', reg.name || '', reg.roll || '', reg.email || '', reg.branch || '', reg.sem || '', reg.status || 'confirmed']);
+  });
+
+  const csv = rows.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'SCELL_GECWC_Registrations.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported successfully.');
 }
 
 function downloadSlipMock() {
@@ -872,22 +1101,171 @@ function handleAdminLogin(e) {
   const pass = document.getElementById('admin-pass').value.trim();
   const errorBox = document.getElementById('admin-login-error');
 
-  // APNA CUSTOM USERNAME AUR PASSWORD YAHAN SET KAREIN:
-  const VALID_USER = "admin@gecwc";
-  const VALID_PASS = "Scell@2026"; // ise apna mann-chaha strong password bana dein
+  const VALID_USER = 'admin@gecwc';
+  const VALID_PASS = 'Scell@2026';
 
   if (user === VALID_USER && pass === VALID_PASS) {
     sessionStorage.setItem('scell_admin_auth', 'true');
-    showToast("Identity Verified. Welcome Admin.");
+    showToast('Identity Verified. Welcome Admin.');
     renderRoute('admin');
   } else {
-    errorBox.innerText = "Invalid Admin ID or Security Key. Access Denied.";
-    errorBox.classList.remove('hidden');
+    if (errorBox) {
+      errorBox.innerText = 'Invalid Admin ID or Security Key. Access Denied.';
+      errorBox.classList.remove('hidden');
+    }
   }
 }
 
 function handleAdminLogout() {
   sessionStorage.removeItem('scell_admin_auth');
-  showToast("Logged out of Admin Console.");
+  showToast('Logged out of Admin Console.');
   renderRoute('admin');
+}
+
+function copyAssetUrl(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('Asset URL copied to clipboard.');
+  }).catch(() => {
+    showToast('Copy failed. Please copy manually.');
+  });
+}
+
+function deleteAsset(id) {
+  const ok = window.confirm('Delete this asset from the media library?');
+  if (!ok) return;
+  SCELL_DATA.assets = SCELL_DATA.assets.filter(asset => asset.id !== id);
+  savePersistedScellData();
+  renderRoute('admin');
+  showToast('Asset removed.');
+}
+
+function handleAssetSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById('asset-name').value.trim();
+  const category = document.getElementById('asset-category').value;
+  const url = document.getElementById('asset-url').value.trim();
+  if (!name || !url) {
+    showToast('Asset name and URL are required.');
+    return;
+  }
+
+  SCELL_DATA.assets.unshift({
+    id: `asset-${Date.now()}`,
+    name,
+    category,
+    url
+  });
+
+  savePersistedScellData();
+  e.target.reset();
+  renderRoute('admin');
+  showToast('Asset added to the media library.');
+}
+
+function resetTeamForm() {
+  const ids = ['team-name', 'team-role', 'team-category', 'team-photo', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-order', 'team-status'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'team-category' ? 'Faculty In-Charge' : id === 'team-status' ? 'Active' : id === 'team-order' ? '1' : '';
+  });
+}
+
+function prefillTeamMember(name) {
+  const member = (SCELL_DATA.team.studentRepresentatives || []).find(item => item.name === name);
+  if (!member) return;
+  const ids = {
+    'team-name': member.name || '',
+    'team-role': member.role || '',
+    'team-category': 'Student Representatives',
+    'team-photo': member.image || '',
+    'team-department': member.department || '',
+    'team-batch': member.batch || '',
+    'team-linkedin': member.linkedin || '',
+    'team-email': member.email || '',
+    'team-order': member.order || 1,
+    'team-status': member.status || 'Active'
+  };
+  Object.entries(ids).forEach(([key, value]) => {
+    const el = document.getElementById(key);
+    if (el) el.value = value;
+  });
+  SCELL_ADMIN_STATE.editingTeamMemberId = name;
+}
+
+function handleSaveTeamMember(e) {
+  e.preventDefault();
+  const member = {
+    name: document.getElementById('team-name').value.trim(),
+    role: document.getElementById('team-role').value.trim(),
+    category: document.getElementById('team-category').value,
+    image: document.getElementById('team-photo').value.trim() || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
+    department: document.getElementById('team-department').value.trim(),
+    batch: document.getElementById('team-batch').value.trim(),
+    linkedin: document.getElementById('team-linkedin').value.trim(),
+    email: document.getElementById('team-email').value.trim(),
+    order: Number(document.getElementById('team-order').value || 1),
+    status: document.getElementById('team-status').value
+  };
+
+  if (!member.name || !member.role) {
+    showToast('Member name and role are required.');
+    return;
+  }
+
+  const list = SCELL_DATA.team.studentRepresentatives || [];
+  const existingIndex = list.findIndex(item => item.name === SCELL_ADMIN_STATE.editingTeamMemberId || item.name === member.name);
+  if (existingIndex >= 0) {
+    list[existingIndex] = { ...list[existingIndex], ...member };
+  } else {
+    list.push(member);
+  }
+
+  SCELL_DATA.team.studentRepresentatives = list;
+  SCELL_DATA.team.leads = list;
+  saveTeamDirectory();
+  savePersistedScellData();
+  resetTeamForm();
+  SCELL_ADMIN_STATE.editingTeamMemberId = null;
+  renderRoute('admin');
+  showToast('Team member saved.');
+}
+
+function deleteTeamMember(name) {
+  const ok = window.confirm(`Remove ${name} from the team directory?`);
+  if (!ok) return;
+  const list = (SCELL_DATA.team.studentRepresentatives || []).filter(member => member.name !== name);
+  SCELL_DATA.team.studentRepresentatives = list;
+  SCELL_DATA.team.leads = list;
+  saveTeamDirectory();
+  savePersistedScellData();
+  renderRoute('admin');
+  showToast('Team member removed.');
+}
+
+function saveContentSection(section) {
+  const values = {
+    heading: document.getElementById(`content-heading-${section}`)?.value || '',
+    subtitle: document.getElementById(`content-subtitle-${section}`)?.value || '',
+    description: document.getElementById(`content-description-${section}`)?.value || ''
+  };
+
+  if (!SCELL_DATA.siteContent[section]) {
+    SCELL_DATA.siteContent[section] = {};
+  }
+
+  if (section === 'home') {
+    SCELL_DATA.siteContent.home = { ...SCELL_DATA.siteContent.home, heading: values.heading || SCELL_DATA.siteContent.home.heading, subheading: values.subtitle || SCELL_DATA.siteContent.home.subheading, description: values.description || SCELL_DATA.siteContent.home.description, announcement: SCELL_DATA.siteContent.home.announcement || '// STARTUP_CELL.GECWC_INCUBATOR' };
+  } else {
+    SCELL_DATA.siteContent[section] = {
+      ...SCELL_DATA.siteContent[section],
+      heading: values.heading || SCELL_DATA.siteContent[section].heading,
+      subtitle: values.subtitle || SCELL_DATA.siteContent[section].subtitle,
+      intro: values.subtitle || SCELL_DATA.siteContent[section].intro,
+      description: values.description || SCELL_DATA.siteContent[section].description
+    };
+  }
+
+  savePersistedScellData();
+  renderRoute(currentRoute || 'home');
+  showToast(`${section.toUpperCase()} content saved.`);
 }

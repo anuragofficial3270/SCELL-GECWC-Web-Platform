@@ -14,6 +14,27 @@ const SCELL_DATA = {
   },
   events: [],
   registrations: [],
+  assets: [],
+  siteContent: {
+    home: {
+      heading: 'BUILD. INNOVATE. LAUNCH.',
+      subheading: 'Building an uncompromising innovation and entrepreneurship ecosystem at Government Engineering College, West Champaran.',
+      description: 'From embedded hardware to venture-backed startups, SCELL creates a practical bridge from campus ideas to scalable impact.',
+      ctaPrimary: 'EXPLORE MISSIONS',
+      ctaSecondary: 'JOIN SCELL FELLOWSHIP',
+      announcement: 'SCELL // STARTUP_CELL.GECWC_INCUBATOR',
+      featuredEvent: 'Innovation Sprint 2026',
+      featuredProject: 'GandakHydro',
+      visible: true
+    },
+    events: { heading: 'Events', subtitle: 'Launch pads for student-led innovation', intro: 'Official events, workshops, competitions and startup programmes from SCELL GECWC.', showUpcoming: true, showPast: true, visible: true },
+    projects: { heading: 'R&D Prototypes', subtitle: 'Student innovations', intro: 'Research and product prototypes built across the campus ecosystem.', visible: true },
+    startups: { heading: 'Student Enterprises', subtitle: 'Entrepreneurial ventures', intro: 'Commercial ideas turning into ventures with real-world traction.', visible: true },
+    arena: { heading: 'SCELL Arena', subtitle: 'Participation and recognition', intro: 'Simple, clean profiles for members of the SCELL community.', visible: true },
+    memories: { heading: 'Memories & Footprints', subtitle: 'Visual archive', intro: 'Moments from workshops, competitions and community events.', visible: true },
+    team: { heading: 'People powering innovation', subtitle: 'Leadership and student network', intro: 'Faculty, coordinators, representatives and builders behind SCELL.', visible: true },
+    about: { heading: 'About SCELL GECWC', subtitle: 'Our charter', intro: 'SCELL helps students transform ideas into prototypes, ventures and measurable impact.', visible: true }
+  },
   projects: [
     {
       id: "PRJ-01",
@@ -149,6 +170,36 @@ const SCELL_DATA = {
     { id: 6, title: "Industrial Mentor Round with Senior Engineers", tag: "MENTORSHIP", date: "SEP 2025", img: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800&auto=format&fit=crop" }
   ]
 };
+
+function hydratePersistedScellData() {
+  const saved = JSON.parse(localStorage.getItem('scell_cms_state_v1') || 'null');
+  if (!saved) return;
+
+  if (saved.events) SCELL_DATA.events = saved.events;
+  if (saved.registrations) SCELL_DATA.registrations = saved.registrations;
+  if (saved.assets) SCELL_DATA.assets = saved.assets;
+  if (saved.siteContent) SCELL_DATA.siteContent = { ...SCELL_DATA.siteContent, ...saved.siteContent };
+  if (saved.projects) SCELL_DATA.projects = saved.projects;
+  if (saved.startups) SCELL_DATA.startups = saved.startups;
+  if (saved.memories) SCELL_DATA.memories = saved.memories;
+  if (saved.team) SCELL_DATA.team = { ...SCELL_DATA.team, ...saved.team };
+  if (saved.arena) SCELL_DATA.arena = { ...SCELL_DATA.arena, ...saved.arena };
+  SCELL_DATA.stats.eventsCount = SCELL_DATA.events.length;
+}
+
+function savePersistedScellData() {
+  localStorage.setItem('scell_cms_state_v1', JSON.stringify({
+    events: SCELL_DATA.events,
+    registrations: SCELL_DATA.registrations,
+    assets: SCELL_DATA.assets,
+    siteContent: SCELL_DATA.siteContent,
+    projects: SCELL_DATA.projects,
+    startups: SCELL_DATA.startups,
+    memories: SCELL_DATA.memories,
+    team: SCELL_DATA.team,
+    arena: SCELL_DATA.arena
+  }));
+}
 
 function hydrateTeamDirectory() {
   try {

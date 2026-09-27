@@ -1,12 +1,19 @@
 /* HOME VIEW */
 function renderHomeView() {
+  const home = SCELL_DATA.siteContent?.home || {};
+  const heroHeading = home.heading || 'BUILD. INNOVATE. LAUNCH.';
+  const heroSubheading = home.subheading || 'Building an uncompromising innovation and entrepreneurship ecosystem at Government Engineering College, West Champaran.';
+  const heroDescription = home.description || 'From embedded hardware to venture-backed startups, SCELL creates a practical bridge from campus ideas to scalable impact.';
+  const ctaPrimary = home.ctaPrimary || 'EXPLORE MISSIONS';
+  const ctaSecondary = home.ctaSecondary || 'JOIN SCELL FELLOWSHIP';
+
   return `
     <section class="relative pt-12 pb-24 md:pt-20 md:pb-32 overflow-hidden tech-grid border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-brand-electric/30 bg-blue-500/5 dark:bg-blue-950/30 text-xs font-mono text-brand-electric dark:text-brand-neon">
             <span class="w-2 h-2 rounded-full bg-brand-neon animate-ping"></span>
-            <span>// STARTUP_CELL.GECWC_INCUBATOR</span>
+            <span>${home.announcement || '// STARTUP_CELL.GECWC_INCUBATOR'}</span>
           </div>
           <div class="hidden sm:flex items-center gap-6 font-mono text-[11px] text-slate-400">
             <span>LAT: 26.799° N</span>
@@ -17,21 +24,22 @@ function renderHomeView() {
 
         <div class="max-w-5xl">
           <h1 class="text-5xl sm:text-7xl lg:text-8xl font-black font-editorial tracking-tight leading-[0.95] uppercase mb-8">
-            BUILD. <br/>
-            <span class="bg-gradient-to-r from-brand-electric via-indigo-500 to-brand-neon bg-clip-text text-transparent">INNOVATE.</span> <br/>
-            LAUNCH.
+            ${heroHeading.split(' ').slice(0, 3).join(' ')}. <br/>
+            <span class="bg-gradient-to-r from-brand-electric via-indigo-500 to-brand-neon bg-clip-text text-transparent">${heroHeading.split(' ').slice(3, 6).join(' ') || 'INNOVATE.'}</span> <br/>
+            ${heroHeading.split(' ').slice(6).join(' ') || 'LAUNCH.'}
           </h1>
           <p class="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-10 font-normal">
-            Building an uncompromising innovation and entrepreneurship ecosystem at <span class="font-semibold text-slate-900 dark:text-white">Government Engineering College, West Champaran</span>. From embedded hardware to venture-backed startups.
+            ${heroSubheading}
           </p>
+          <p class="text-sm text-slate-500 dark:text-slate-400 max-w-xl mb-8">${heroDescription}</p>
 
           <div class="flex flex-wrap items-center gap-4">
             <button onclick="navigate('events')" class="px-7 py-4 rounded-xl bg-brand-electric hover:bg-blue-600 text-white font-mono text-xs font-bold tracking-wider uppercase transition shadow-xl shadow-brand-electric/25 flex items-center gap-3 cursor-pointer group" data-cursor="EXPLORE">
-              <span>EXPLORE MISSIONS</span>
+              <span>${ctaPrimary}</span>
               <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
             </button>
             <button onclick="openAuthModal('register')" class="px-7 py-4 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-brand-electric dark:hover:border-brand-neon hover:bg-slate-100 dark:hover:bg-slate-800 font-mono text-xs font-bold tracking-wider uppercase transition flex items-center gap-2 cursor-pointer" data-cursor="JOIN">
-              <span>JOIN SCELL FELLOWSHIP</span>
+              <span>${ctaSecondary}</span>
               <i data-lucide="sparkles" class="w-4 h-4 text-brand-neon"></i>
             </button>
           </div>
@@ -800,6 +808,376 @@ function renderAdminView() {
     `;
   }
 
+  const activeTab = SCELL_ADMIN_STATE.activeTab || 'missions';
+  const navTabs = [
+    { key: 'missions', label: 'MISSIONS' },
+    { key: 'assets', label: 'ASSETS' },
+    { key: 'team', label: 'TEAM' },
+    { key: 'content', label: 'CONTENT' }
+  ];
+
+  const renderMissionsTab = () => `
+    <div class="space-y-8">
+      <div class="p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <h3 class="text-2xl font-bold font-editorial">Deploy New Event to Website</h3>
+          <button onclick="resetEventEditor(); showToast('Event form reset.');" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-mono uppercase">RESET</button>
+        </div>
+        <form onsubmit="handleCreateEventSubmit(event)" class="space-y-4 font-mono text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Event Title *</label>
+              <input type="text" id="ev-add-title" required placeholder="e.g. Drone Innovation Bootcamp" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Category *</label>
+              <select id="ev-add-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+                <option value="Workshop">Workshop</option>
+                <option value="Hackathon">Hackathon</option>
+                <option value="Competition">Competition</option>
+                <option value="Ideathon">Ideathon</option>
+                <option value="Seminar">Seminar</option>
+                <option value="Webinar">Webinar</option>
+                <option value="Quiz">Quiz</option>
+                <option value="Exhibition">Exhibition</option>
+                <option value="Outreach">Outreach</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> Start Date *</label>
+              <input type="date" id="ev-add-start-date" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> End Date</label>
+              <input type="date" id="ev-add-end-date" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Start Time</label>
+              <input type="time" id="ev-add-start-time" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="clock" class="w-3.5 h-3.5"></i> End Time</label>
+              <input type="time" id="ev-add-end-time" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Venue *</label>
+              <input type="text" id="ev-add-venue" required placeholder="Auditorium, GECWC" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="navigation" class="w-3.5 h-3.5"></i> Venue Map URL</label>
+              <input type="url" id="ev-add-map-url" placeholder="https://maps.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="image" class="w-3.5 h-3.5"></i> Poster Image URL</label>
+              <input type="url" id="ev-add-poster" placeholder="https://images.unsplash.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Rulebook PDF URL</label>
+              <input type="url" id="ev-add-rulebook" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Short Description</label>
+              <textarea id="ev-add-short-desc" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Full Event Description</label>
+              <textarea id="ev-add-full-desc" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Eligibility</label>
+              <textarea id="ev-add-eligibility" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Rules / Instructions</label>
+              <textarea id="ev-add-rules" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Registration</label>
+              <select id="ev-add-reg-open" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+                <option value="open">OPEN</option>
+                <option value="closed">CLOSED</option>
+              </select>
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Registration Start</label>
+              <input type="date" id="ev-add-reg-start" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Registration Deadline</label>
+              <input type="date" id="ev-add-reg-deadline" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Max Participants</label>
+              <input type="number" id="ev-add-max-participants" value="100" min="1" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Participation Type</label>
+              <select id="ev-add-participation-type" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+                <option value="Individual">Individual</option>
+                <option value="Team">Team</option>
+                <option value="Both">Both</option>
+              </select>
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Max Team Size</label>
+              <input type="number" id="ev-add-max-team-size" value="4" min="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 p-4">
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Event Status</label>
+              <select id="ev-add-status" class="px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/80 outline-none focus:border-brand-electric">
+                <option value="Draft">Draft</option>
+                <option value="Upcoming">Upcoming</option>
+                <option value="Registration Open">Registration Open</option>
+                <option value="Registration Closed">Registration Closed</option>
+                <option value="Ongoing">Ongoing</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <button id="publish-event-btn" type="submit" class="px-6 py-3 rounded-xl bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider uppercase cursor-pointer">PUBLISH EVENT LIVE</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-2xl font-bold font-editorial">Manage Active & Past Events</h3>
+          <span class="font-mono text-[11px] text-slate-400">Total: ${SCELL_DATA.events.length}</span>
+        </div>
+        <div class="space-y-4">
+          ${SCELL_DATA.events.length === 0 ? '<div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-slate-500">No event published yet. Create your first mission.</div>' : SCELL_DATA.events.map(ev => `
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/60 dark:bg-slate-900/40">
+              <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                <div class="flex items-center gap-4">
+                  <img src="${ev.poster || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop'}" alt="${ev.title}" class="w-20 h-20 object-cover rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                      <span class="px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-mono font-bold">${ev.category || 'Workshop'}</span>
+                      <span class="px-2 py-1 rounded-full ${ev.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'} text-[10px] font-mono font-bold">${ev.status}</span>
+                    </div>
+                    <h4 class="text-lg font-bold font-editorial">${ev.title}</h4>
+                    <div class="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500 font-mono">
+                      <span class="flex items-center gap-1"><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> ${ev.date || 'TBA'}</span>
+                      <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> ${ev.time || 'TBA'}</span>
+                      <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${ev.venue || 'GECWC'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button onclick="prefillEventEditor('${ev.id}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
+                  <button onclick="navigate('event-detail', '${ev.id}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">VIEW</button>
+                  <button onclick="exportRegistrationsCSV()" class="px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-400 text-[10px] font-mono uppercase">REGISTRATIONS</button>
+                  <button onclick="toggleEventRegistration('${ev.id}', ${!ev.registrationOpen})" class="px-3 py-2 rounded-lg border ${ev.registrationOpen ? 'border-red-500/40 text-red-400' : 'border-emerald-500/40 text-emerald-400'} text-[10px] font-mono uppercase">${ev.registrationOpen ? 'CLOSE REG' : 'OPEN REG'}</button>
+                  <button onclick="markEventCompleted('${ev.id}')" class="px-3 py-2 rounded-lg border border-amber-500/40 text-amber-400 text-[10px] font-mono uppercase">FINISHED</button>
+                  <button onclick="duplicateEvent('${ev.id}')" class="px-3 py-2 rounded-lg border border-violet-500/40 text-violet-400 text-[10px] font-mono uppercase">DUPLICATE</button>
+                  <button onclick="deleteEvent('${ev.id}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">DELETE</button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const renderAssetsTab = () => `
+    <div class="space-y-8">
+      <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+        <h3 class="text-2xl font-bold font-editorial mb-6">Assets Library</h3>
+        <form onsubmit="handleAssetSubmit(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4 font-mono text-xs">
+          <div class="md:col-span-2">
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Asset Name</label>
+            <input id="asset-name" type="text" required placeholder="Drone workshop poster" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Category</label>
+            <select id="asset-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+              <option value="Event Posters">Event Posters</option>
+              <option value="Gallery / Memories">Gallery / Memories</option>
+              <option value="Project Images">Project Images</option>
+              <option value="Startup Logos">Startup Logos</option>
+              <option value="Team Photos">Team Photos</option>
+              <option value="Documents / PDFs">Documents / PDFs</option>
+            </select>
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Asset URL</label>
+            <input id="asset-url" type="url" required placeholder="https://..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div class="md:col-span-4 flex justify-end">
+            <button type="submit" class="px-5 py-3 rounded-xl bg-brand-electric text-white font-bold uppercase tracking-wider">Add Asset</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          ${SCELL_DATA.assets.length === 0 ? '<div class="col-span-full text-slate-500">No assets saved yet.</div>' : SCELL_DATA.assets.map(asset => `
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 p-3">
+              <img src="${asset.url}" alt="${asset.name}" class="w-full h-40 object-cover rounded-xl mb-3 border border-slate-200 dark:border-slate-700">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <p class="font-bold text-sm truncate">${asset.name}</p>
+                <span class="text-[10px] font-mono text-slate-500">${asset.category}</span>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="copyAssetUrl('${asset.url}')" class="flex-1 px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">COPY</button>
+                <button onclick="deleteAsset('${asset.id}')" class="flex-1 px-2 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">DELETE</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const renderTeamTab = () => `
+    <div class="space-y-8">
+      <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+        <h3 class="text-2xl font-bold font-editorial mb-6">Team Management</h3>
+        <form onsubmit="handleSaveTeamMember(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Full Name *</label>
+            <input id="team-name" required type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Designation / Role *</label>
+            <input id="team-role" required type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Category</label>
+            <select id="team-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+              <option value="Faculty In-Charge">Faculty In-Charge</option>
+              <option value="District Startup Coordinator">District Startup Coordinator</option>
+              <option value="Student Representatives">Student Representatives</option>
+              <option value="Student Coordinators">Student Coordinators</option>
+              <option value="Core Team">Core Team</option>
+            </select>
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Photo URL</label>
+            <input id="team-photo" type="url" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Department</label>
+            <input id="team-department" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Academic Year / Batch</label>
+            <input id="team-batch" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">LinkedIn URL</label>
+            <input id="team-linkedin" type="url" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Email</label>
+            <input id="team-email" type="email" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Display Order</label>
+            <input id="team-order" type="number" value="1" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Status</label>
+            <select id="team-status" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+              <option value="Active">Active</option>
+              <option value="Hidden">Hidden</option>
+            </select>
+          </div>
+          <div class="md:col-span-2 flex justify-end gap-2">
+            <button type="button" onclick="resetTeamForm()" class="px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 font-bold uppercase">CLEAR</button>
+            <button type="submit" class="px-5 py-3 rounded-xl bg-brand-electric text-white font-bold uppercase">SAVE MEMBER</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+        <h3 class="text-xl font-bold font-editorial mb-4">Member Directory</h3>
+        <div class="space-y-3">
+          ${(SCELL_DATA.team.studentRepresentatives || []).map((member, index) => `
+            <div class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+              <div class="flex items-center gap-3">
+                <img src="${member.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop'}" class="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                <div>
+                  <div class="font-bold">${member.name}</div>
+                  <div class="text-[11px] text-slate-500 font-mono">${member.role} · ${member.batch || 'Batch TBD'}</div>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="prefillTeamMember('${member.name}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
+                <button onclick="deleteTeamMember('${member.name}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">REMOVE</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const renderContentTab = () => `
+    <div class="space-y-8">
+      ${['home', 'events', 'projects', 'startups', 'arena', 'memories', 'team', 'about'].map(section => {
+        const content = SCELL_DATA.siteContent[section] || {};
+        return `
+          <div class="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold font-editorial uppercase">${section}</h3>
+              <button onclick="saveContentSection('${section}')" class="px-3 py-2 rounded-lg bg-brand-electric text-white text-[10px] font-mono uppercase">SAVE</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block mb-1 text-slate-500 dark:text-slate-300">Heading</label>
+                <input id="content-heading-${section}" value="${(content.heading || '').replace(/"/g, '&quot;')}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block mb-1 text-slate-500 dark:text-slate-300">Subtitle / Intro</label>
+                <textarea id="content-subtitle-${section}" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">${(content.subtitle || content.intro || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block mb-1 text-slate-500 dark:text-slate-300">Description</label>
+                <textarea id="content-description-${section}" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">${(content.description || content.subheading || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  const tabContent = {
+    missions: renderMissionsTab(),
+    assets: renderAssetsTab(),
+    team: renderTeamTab(),
+    content: renderContentTab()
+  }[activeTab] || renderMissionsTab();
+
   return `
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-8 mb-8">
@@ -823,111 +1201,12 @@ function renderAdminView() {
       </div>
 
       <div class="mb-8 flex flex-wrap gap-2 font-mono text-xs">
-        <button class="px-3 py-2 rounded-xl bg-brand-electric text-white border border-brand-electric">Missions</button>
-        <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">Assets</button>
-        <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">Team</button>
-        <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">Content</button>
+        ${navTabs.map(tab => `
+          <button onclick="setAdminTab('${tab.key}')" class="px-3 py-2 rounded-xl border transition ${activeTab === tab.key ? 'bg-brand-electric text-white border-brand-electric' : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'}">${tab.label}</button>
+        `).join('')}
       </div>
 
-      <div class="p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark mb-12 shadow-xl">
-        <h3 class="text-xl font-bold font-editorial mb-4">Deploy New Event to Website</h3>
-        <form onsubmit="handleCreateEventSubmit(event)" class="space-y-4 font-mono text-xs">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block mb-1 text-slate-400">Event Title *</label>
-              <input type="text" id="ev-add-title" required placeholder="e.g. AI Prompt Sprint" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
-            </div>
-            <div>
-              <label class="block mb-1 text-slate-400">Category</label>
-              <select id="ev-add-category" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
-                <option value="WORKSHOP">WORKSHOP</option>
-                <option value="HACKATHON">HACKATHON</option>
-                <option value="STARTUP">STARTUP</option>
-                <option value="COMPETITION">COMPETITION</option>
-              </select>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label class="block mb-1 text-slate-400">Date Range *</label>
-              <input type="text" id="ev-add-date" required placeholder="e.g. 15-16 NOV 2026" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
-            </div>
-            <div>
-              <label class="block mb-1 text-slate-400">Time</label>
-              <input type="text" id="ev-add-time" placeholder="10:00 AM - 4:00 PM" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
-            </div>
-            <div>
-              <label class="block mb-1 text-slate-400">Venue</label>
-              <input type="text" id="ev-add-venue" placeholder="Auditorium, GECWC" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
-            </div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block mb-1 text-slate-400">Poster Image URL</label>
-              <input type="url" id="ev-add-poster" placeholder="https://... or Drive URL" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
-            </div>
-            <div>
-              <label class="block mb-1 text-slate-400">Rulebook PDF Link (Drive/Cloud)</label>
-              <input type="url" id="ev-add-rulebook" placeholder="https://drive.google.com/..." class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
-            </div>
-          </div>
-          <div>
-            <label class="block mb-1 text-slate-400">Event Description</label>
-            <textarea id="ev-add-desc" rows="2" placeholder="Brief rules & description..." class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></textarea>
-          </div>
-          <div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-900/30">
-            <div class="font-bold mb-2">Asset Delivery Mode</div>
-            <div class="flex flex-wrap gap-3 font-mono text-[10px]">
-              <label class="flex items-center gap-2"><input type="radio" name="asset-mode" checked> Direct Upload</label>
-              <label class="flex items-center gap-2"><input type="radio" name="asset-mode"> External URL</label>
-            </div>
-          </div>
-          <button type="submit" class="px-6 py-2.5 rounded-lg bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider cursor-pointer">PUBLISH EVENT LIVE</button>
-        </form>
-      </div>
-
-      <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark mb-12 shadow-xl font-mono text-xs">
-        <h3 class="text-xl font-bold font-editorial mb-4">Manage Active & Past Events</h3>
-        <div class="space-y-4">
-          ${SCELL_DATA.events.length === 0 ? '<p class="text-slate-400">No events currently deployed.</p>' : SCELL_DATA.events.map(ev => `
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 gap-4">
-              <div>
-                <span class="font-bold text-sm text-slate-900 dark:text-white">${ev.title}</span>
-                <p class="text-slate-400 text-[11px]">${ev.date} · Status: <span class="text-brand-neon uppercase">${ev.status}</span></p>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <button onclick="toggleEventRegistration('${ev.id}',${!ev.registrationOpen})" class="px-3 py-1.5 rounded border ${ev.registrationOpen ? 'border-red-500/40 text-red-400 hover:bg-red-500/10' : 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}">${ev.registrationOpen ? 'Close Registration' : 'Open Registration'}</button>
-                <button onclick="markEventCompleted('${ev.id}')" class="px-3 py-1.5 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10">Mark Finished & Add Winners</button>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark overflow-hidden shadow-xl">
-        <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-          <h3 class="font-editorial font-bold text-lg">Verified Student Registrations</h3>
-          <span class="text-xs font-mono text-slate-400">Total: ${SCELL_DATA.registrations.length}</span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left font-mono text-xs">
-            <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <tr><th class="p-4">SLIP ID</th><th class="p-4">CANDIDATE</th><th class="p-4">ROLL NO</th><th class="p-4">EVENT</th><th class="p-4">BRANCH & SEM</th></tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-              ${SCELL_DATA.registrations.map(r => `
-                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                  <td class="p-4 font-bold text-brand-electric dark:text-brand-neon">${r.id}</td>
-                  <td class="p-4 font-semibold text-slate-800 dark:text-slate-200">${r.name}</td>
-                  <td class="p-4 text-slate-500">${r.roll}</td>
-                  <td class="p-4">${r.eventName}</td>
-                  <td class="p-4">${r.branch} ·${r.sem}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      ${tabContent}
     </div>
   `;
 }
