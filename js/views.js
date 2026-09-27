@@ -1233,8 +1233,8 @@ function renderAdminView() {
                       </div>
                     </div>
                     <div class="flex gap-2">
-                      <button onclick="prefillTeamMember('${member.name}', '${group.title}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
-                      <button onclick="deleteTeamMember('${member.name}', '${group.title}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">REMOVE</button>
+                      <button onclick="prefillTeamMember('${escapeTeamAttribute(member.name || '')}', '${escapeTeamAttribute(group.title)}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
+                      <button onclick="deleteTeamMember('${escapeTeamAttribute(member.name || '')}', '${escapeTeamAttribute(group.title)}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">REMOVE</button>
                     </div>
                   </div>
                 `).join('')}

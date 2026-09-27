@@ -1162,6 +1162,40 @@ function handleAssetSubmit(e) {
   showToast('Asset added to the media library.');
 }
 
+function normalizeTeamImageUrl(value) {
+  const fallback = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop';
+  if (!value || !String(value).trim()) return fallback;
+  const cleaned = String(value).trim();
+  try {
+    const parsed = new URL(cleaned);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return cleaned;
+  } catch (error) {
+    return fallback;
+  }
+  return fallback;
+}
+
+function escapeTeamAttribute(value) {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function normalizeTeamCategory(category) {
+  const normalized = String(category || '').trim();
+  const aliases = {
+    'faculty in-charge': 'Faculty In-Charge',
+    faculty: 'Faculty In-Charge',
+    'district startup coordinator': 'District Startup Coordinator',
+    'district coordinator': 'District Startup Coordinator',
+    'student representative': 'Student Representatives',
+    'student representatives': 'Student Representatives',
+    'student coordinators': 'Student Representatives',
+    'core team': 'Student Representatives',
+    coordinators: 'Coordinators',
+    coordinator: 'Coordinators'
+  };
+  return aliases[normalized.toLowerCase()] || normalized || 'Student Representatives';
+}
+
 function resetTeamForm() {
   const ids = ['team-name', 'team-role', 'team-category', 'team-photo', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-order', 'team-status'];
   ids.forEach(id => {
@@ -1176,22 +1210,24 @@ function resetTeamForm() {
 }
 
 function getTeamCollectionForCategory(category) {
-  if (category === 'Faculty In-Charge') return SCELL_DATA.team.faculty || [];
-  if (category === 'District Startup Coordinator') return [SCELL_DATA.team.districtCoordinator].filter(Boolean);
-  if (category === 'Coordinators') return SCELL_DATA.team.coordinators || [];
+  const normalized = normalizeTeamCategory(category);
+  if (normalized === 'Faculty In-Charge') return SCELL_DATA.team.faculty || [];
+  if (normalized === 'District Startup Coordinator') return [SCELL_DATA.team.districtCoordinator].filter(Boolean);
+  if (normalized === 'Coordinators') return SCELL_DATA.team.coordinators || [];
   return SCELL_DATA.team.studentRepresentatives || [];
 }
 
 function setTeamCollectionForCategory(category, list) {
-  if (category === 'Faculty In-Charge') {
+  const normalized = normalizeTeamCategory(category);
+  if (normalized === 'Faculty In-Charge') {
     SCELL_DATA.team.faculty = list;
     return;
   }
-  if (category === 'District Startup Coordinator') {
+  if (normalized === 'District Startup Coordinator') {
     SCELL_DATA.team.districtCoordinator = list[0] || null;
     return;
   }
-  if (category === 'Coordinators') {
+  if (normalized === 'Coordinators') {
     SCELL_DATA.team.coordinators = list;
     return;
   }
@@ -1200,14 +1236,15 @@ function setTeamCollectionForCategory(category, list) {
 }
 
 function prefillTeamMember(name, category = 'Student Representatives') {
-  const list = getTeamCollectionForCategory(category);
+  const normalizedCategory = normalizeTeamCategory(category);
+  const list = getTeamCollectionForCategory(normalizedCategory);
   const member = list.find(item => item.name === name);
   if (!member) return;
   const ids = {
     'team-name': member.name || '',
     'team-role': member.role || member.designation || '',
-    'team-category': category,
-    'team-photo': member.image || '',
+    'team-category': normalizedCategory,
+    'team-photo': normalizeTeamImageUrl(member.image),
     'team-department': member.department || member.org || '',
     'team-batch': member.batch || '',
     'team-linkedin': member.linkedin || '',
@@ -1219,19 +1256,19 @@ function prefillTeamMember(name, category = 'Student Representatives') {
     const el = document.getElementById(key);
     if (el) el.value = value;
   });
-  SCELL_ADMIN_STATE.editingTeamMemberId = `${category}::${name}`;
+  SCELL_ADMIN_STATE.editingTeamMemberId = `${normalizedCategory}::${name}`;
 }
 
 function handleSaveTeamMember(e) {
   e.preventDefault();
-  const category = document.getElementById('team-category').value;
+  const category = normalizeTeamCategory(document.getElementById('team-category').value);
   const member = {
     name: document.getElementById('team-name').value.trim(),
     role: document.getElementById('team-role').value.trim(),
     designation: document.getElementById('team-role').value.trim(),
     category,
     group: category,
-    image: document.getElementById('team-photo').value.trim() || '',
+    image: normalizeTeamImageUrl(document.getElementById('team-photo').value),
     department: document.getElementById('team-department').value.trim(),
     org: document.getElementById('team-department').value.trim(),
     batch: document.getElementById('team-batch').value.trim(),
@@ -1275,16 +1312,17 @@ function handleSaveTeamMember(e) {
 }
 
 function deleteTeamMember(name, category = 'Student Representatives') {
-  const ok = window.confirm(`Remove ${name} from ${category}?`);
+  const normalizedCategory = normalizeTeamCategory(category);
+  const ok = window.confirm(`Remove ${name} from ${normalizedCategory}?`);
   if (!ok) return;
 
-  if (category === 'Faculty In-Charge') {
+  if (normalizedCategory === 'Faculty In-Charge') {
     SCELL_DATA.team.faculty = (SCELL_DATA.team.faculty || []).filter(member => member.name !== name);
-  } else if (category === 'District Startup Coordinator') {
+  } else if (normalizedCategory === 'District Startup Coordinator') {
     if (SCELL_DATA.team.districtCoordinator && SCELL_DATA.team.districtCoordinator.name === name) {
       SCELL_DATA.team.districtCoordinator = null;
     }
-  } else if (category === 'Coordinators') {
+  } else if (normalizedCategory === 'Coordinators') {
     SCELL_DATA.team.coordinators = (SCELL_DATA.team.coordinators || []).filter(member => member.name !== name);
   } else {
     SCELL_DATA.team.studentRepresentatives = (SCELL_DATA.team.studentRepresentatives || []).filter(member => member.name !== name);

@@ -183,6 +183,8 @@ function hydrateTeamDirectory() {
     if (saved.studentRepresentatives) SCELL_DATA.team.studentRepresentatives = saved.studentRepresentatives;
     if (saved.coordinators) SCELL_DATA.team.coordinators = saved.coordinators;
     if (saved.developedBy) SCELL_DATA.team.developedBy = saved.developedBy;
+    if (Array.isArray(saved.studentCoordinators)) SCELL_DATA.team.studentRepresentatives = saved.studentCoordinators;
+    if (Array.isArray(saved.coreTeam)) SCELL_DATA.team.studentRepresentatives = saved.coreTeam;
     SCELL_DATA.team.leads = SCELL_DATA.team.studentRepresentatives;
   } catch (err) {
     console.warn('Team directory hydrate failed:', err);
