@@ -1166,19 +1166,49 @@ function resetTeamForm() {
   const ids = ['team-name', 'team-role', 'team-category', 'team-photo', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-order', 'team-status'];
   ids.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.value = id === 'team-category' ? 'Faculty In-Charge' : id === 'team-status' ? 'Active' : id === 'team-order' ? '1' : '';
+    if (!el) return;
+    if (id === 'team-category') el.value = 'Student Representatives';
+    else if (id === 'team-status') el.value = 'Active';
+    else if (id === 'team-order') el.value = '1';
+    else el.value = '';
   });
+  SCELL_ADMIN_STATE.editingTeamMemberId = null;
 }
 
-function prefillTeamMember(name) {
-  const member = (SCELL_DATA.team.studentRepresentatives || []).find(item => item.name === name);
+function getTeamCollectionForCategory(category) {
+  if (category === 'Faculty In-Charge') return SCELL_DATA.team.faculty || [];
+  if (category === 'District Startup Coordinator') return [SCELL_DATA.team.districtCoordinator].filter(Boolean);
+  if (category === 'Coordinators') return SCELL_DATA.team.coordinators || [];
+  return SCELL_DATA.team.studentRepresentatives || [];
+}
+
+function setTeamCollectionForCategory(category, list) {
+  if (category === 'Faculty In-Charge') {
+    SCELL_DATA.team.faculty = list;
+    return;
+  }
+  if (category === 'District Startup Coordinator') {
+    SCELL_DATA.team.districtCoordinator = list[0] || null;
+    return;
+  }
+  if (category === 'Coordinators') {
+    SCELL_DATA.team.coordinators = list;
+    return;
+  }
+  SCELL_DATA.team.studentRepresentatives = list;
+  SCELL_DATA.team.leads = list;
+}
+
+function prefillTeamMember(name, category = 'Student Representatives') {
+  const list = getTeamCollectionForCategory(category);
+  const member = list.find(item => item.name === name);
   if (!member) return;
   const ids = {
     'team-name': member.name || '',
-    'team-role': member.role || '',
-    'team-category': 'Student Representatives',
+    'team-role': member.role || member.designation || '',
+    'team-category': category,
     'team-photo': member.image || '',
-    'team-department': member.department || '',
+    'team-department': member.department || member.org || '',
     'team-batch': member.batch || '',
     'team-linkedin': member.linkedin || '',
     'team-email': member.email || '',
@@ -1189,22 +1219,27 @@ function prefillTeamMember(name) {
     const el = document.getElementById(key);
     if (el) el.value = value;
   });
-  SCELL_ADMIN_STATE.editingTeamMemberId = name;
+  SCELL_ADMIN_STATE.editingTeamMemberId = `${category}::${name}`;
 }
 
 function handleSaveTeamMember(e) {
   e.preventDefault();
+  const category = document.getElementById('team-category').value;
   const member = {
     name: document.getElementById('team-name').value.trim(),
     role: document.getElementById('team-role').value.trim(),
-    category: document.getElementById('team-category').value,
-    image: document.getElementById('team-photo').value.trim() || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
+    designation: document.getElementById('team-role').value.trim(),
+    category,
+    group: category,
+    image: document.getElementById('team-photo').value.trim() || '',
     department: document.getElementById('team-department').value.trim(),
+    org: document.getElementById('team-department').value.trim(),
     batch: document.getElementById('team-batch').value.trim(),
     linkedin: document.getElementById('team-linkedin').value.trim(),
     email: document.getElementById('team-email').value.trim(),
     order: Number(document.getElementById('team-order').value || 1),
-    status: document.getElementById('team-status').value
+    status: document.getElementById('team-status').value,
+    badge: category.toUpperCase()
   };
 
   if (!member.name || !member.role) {
@@ -1212,30 +1247,50 @@ function handleSaveTeamMember(e) {
     return;
   }
 
-  const list = SCELL_DATA.team.studentRepresentatives || [];
-  const existingIndex = list.findIndex(item => item.name === SCELL_ADMIN_STATE.editingTeamMemberId || item.name === member.name);
+  const list = [...getTeamCollectionForCategory(category)];
+  const existingKey = SCELL_ADMIN_STATE.editingTeamMemberId || `${category}::${member.name}`;
+  const existingIndex = list.findIndex(item => `${category}::${item.name}` === existingKey || item.name === member.name);
   if (existingIndex >= 0) {
     list[existingIndex] = { ...list[existingIndex], ...member };
   } else {
     list.push(member);
   }
 
-  SCELL_DATA.team.studentRepresentatives = list;
-  SCELL_DATA.team.leads = list;
+  if (category === 'Faculty In-Charge') {
+    SCELL_DATA.team.faculty = list;
+  } else if (category === 'District Startup Coordinator') {
+    SCELL_DATA.team.districtCoordinator = list[0] || null;
+  } else if (category === 'Coordinators') {
+    SCELL_DATA.team.coordinators = list;
+  } else {
+    SCELL_DATA.team.studentRepresentatives = list;
+    SCELL_DATA.team.leads = list;
+  }
+
   saveTeamDirectory();
   savePersistedScellData();
   resetTeamForm();
-  SCELL_ADMIN_STATE.editingTeamMemberId = null;
   renderRoute('admin');
-  showToast('Team member saved.');
+  showToast('Team record saved.');
 }
 
-function deleteTeamMember(name) {
-  const ok = window.confirm(`Remove ${name} from the team directory?`);
+function deleteTeamMember(name, category = 'Student Representatives') {
+  const ok = window.confirm(`Remove ${name} from ${category}?`);
   if (!ok) return;
-  const list = (SCELL_DATA.team.studentRepresentatives || []).filter(member => member.name !== name);
-  SCELL_DATA.team.studentRepresentatives = list;
-  SCELL_DATA.team.leads = list;
+
+  if (category === 'Faculty In-Charge') {
+    SCELL_DATA.team.faculty = (SCELL_DATA.team.faculty || []).filter(member => member.name !== name);
+  } else if (category === 'District Startup Coordinator') {
+    if (SCELL_DATA.team.districtCoordinator && SCELL_DATA.team.districtCoordinator.name === name) {
+      SCELL_DATA.team.districtCoordinator = null;
+    }
+  } else if (category === 'Coordinators') {
+    SCELL_DATA.team.coordinators = (SCELL_DATA.team.coordinators || []).filter(member => member.name !== name);
+  } else {
+    SCELL_DATA.team.studentRepresentatives = (SCELL_DATA.team.studentRepresentatives || []).filter(member => member.name !== name);
+    SCELL_DATA.team.leads = SCELL_DATA.team.studentRepresentatives;
+  }
+
   saveTeamDirectory();
   savePersistedScellData();
   renderRoute('admin');

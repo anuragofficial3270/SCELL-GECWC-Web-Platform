@@ -109,13 +109,7 @@ const SCELL_DATA = {
     }
   ],
   arena: {
-    leaderboard: [
-      { rank: 1, name: "Anurag Kumar", roll: "2310114002", xp: 1420, level: 9, badges: ["HACKATHON_CHAMP", "DRONE_MASTERY", "PATENT_FILED"] },
-      { rank: 2, name: "Sneha Roy", roll: "2310115018", xp: 1290, level: 8, badges: ["INNOVATOR", "CIRCUIT_WIZARD", "TEAM_LEAD"] },
-      { rank: 3, name: "Vikash Mehta", roll: "2310114045", xp: 1150, level: 8, badges: ["AI_RESEARCHER", "HACKATHON_CHAMP"] },
-      { rank: 4, name: "Pooja Kumari", roll: "2310114031", xp: 980, level: 7, badges: ["IDEA_BUILDER", "WORKSHOP_MASTER"] },
-      { rank: 5, name: "Ravi Shankar", roll: "2310112009", xp: 870, level: 6, badges: ["EV_PIONEER", "HARDWARE_HACK"] }
-    ],
+    leaderboard: [],
     badgeCatalog: [
       { id: "HACKATHON_CHAMP", title: "Hackathon Victor", desc: "Top 3 placement in state-recognized hackathons." },
       { id: "DRONE_MASTERY", title: "Drone Aviator", desc: "Completed 40 hours of flight telemetry workshops." },
@@ -124,41 +118,20 @@ const SCELL_DATA = {
     ]
   },
   team: {
-    faculty: [{
-      name: "Mr. Om Prakash Ram",
-      designation: "Faculty Incharge, Startup Cell",
-      org: "Government Engineering College, West Champaran",
-      description: "Guiding institutional innovation strategy, entrepreneurship mentorship, and student-led prototype development across the campus ecosystem.",
-      image: "",
-      status: "ACTIVE",
-      badge: "FACULTY NODE"
-    }],
-    districtCoordinator: {
-      name: "Mr. Kumar Yashraj",
-      designation: "District Startup Coordinator",
-      org: "Startup Cell, GECWC",
-      description: "Connecting student innovation with district-level startup opportunities, ecosystem outreach, and policy-driven incubation support.",
-      image: "",
-      status: "ACTIVE",
-      badge: "DISTRICT NODE"
-    },
-    studentRepresentatives: [
-      { name: "Pratik Raj", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" },
-      { name: "Ananya Priya", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" }
-    ],
-    leads: [
-      { name: "Pratik Raj", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" },
-      { name: "Ananya Priya", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" }
-    ],
+    faculty: [],
+    districtCoordinator: null,
+    studentRepresentatives: [],
+    coordinators: [],
+    leads: [],
     developedBy: {
-      name: "Anurag Kumar",
-      branch: "Electrical Engineering",
-      batch: "2K24 / 2024–2028",
-      role: "Student Coordinator | Startup Cell, GECWC",
+      name: "SCELL Platform Team",
+      branch: "To be updated",
+      batch: "Campus Innovation Team",
+      role: "Website & Digital Operations",
       image: "",
       status: "SYSTEM ARCHITECT",
       badge: "PLATFORM BUILDER",
-      description: "Designed and built the SCELL digital command layer for student engagement, campus innovation workflows, and startup ecosystem visibility."
+      description: "This profile can be edited by the admin whenever the official platform lead details are finalized."
     }
   },
   memories: [
@@ -208,6 +181,7 @@ function hydrateTeamDirectory() {
     if (saved.faculty) SCELL_DATA.team.faculty = saved.faculty;
     if (saved.districtCoordinator) SCELL_DATA.team.districtCoordinator = saved.districtCoordinator;
     if (saved.studentRepresentatives) SCELL_DATA.team.studentRepresentatives = saved.studentRepresentatives;
+    if (saved.coordinators) SCELL_DATA.team.coordinators = saved.coordinators;
     if (saved.developedBy) SCELL_DATA.team.developedBy = saved.developedBy;
     SCELL_DATA.team.leads = SCELL_DATA.team.studentRepresentatives;
   } catch (err) {
@@ -221,6 +195,7 @@ function saveTeamDirectory() {
       faculty: SCELL_DATA.team.faculty,
       districtCoordinator: SCELL_DATA.team.districtCoordinator,
       studentRepresentatives: SCELL_DATA.team.studentRepresentatives,
+      coordinators: SCELL_DATA.team.coordinators,
       developedBy: SCELL_DATA.team.developedBy
     };
     localStorage.setItem('scell_team_directory_v1', JSON.stringify(payload));

@@ -461,6 +461,45 @@ function renderStartupsView() {
           </div>
         `).join('')}
       </div>
+
+      <div class="mt-16 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark p-6 sm:p-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <p class="font-mono text-[10px] uppercase tracking-[0.28em] text-brand-electric dark:text-brand-neon">COLLABORATION & ECOSYSTEM</p>
+            <h3 class="text-2xl font-bold font-editorial mt-2">Startup ecosystem partners</h3>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <a href="https://startupbihar.nic.in/" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 hover:border-brand-electric transition">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-black">SB</div>
+              <div>
+                <div class="font-bold text-sm">Startup Bihar</div>
+                <div class="font-mono text-[10px] text-slate-500">startupbihar.nic.in</div>
+              </div>
+            </a>
+            <a href="https://www.startupindia.gov.in/" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 hover:border-brand-electric transition">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-black">SI</div>
+              <div>
+                <div class="font-bold text-sm">Startup India</div>
+                <div class="font-mono text-[10px] text-slate-500">startupindia.gov.in</div>
+              </div>
+            </a>
+            <a href="https://iic.mic.gov.in/" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 hover:border-brand-electric transition">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-black">IIC</div>
+              <div>
+                <div class="font-bold text-sm">IIC</div>
+                <div class="font-mono text-[10px] text-slate-500">iic.mic.gov.in</div>
+              </div>
+            </a>
+            <a href="https://dpiit.gov.in/" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 hover:border-brand-electric transition">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white flex items-center justify-center font-black">DPIIT</div>
+              <div>
+                <div class="font-bold text-sm">DPIIT</div>
+                <div class="font-mono text-[10px] text-slate-500">dpiit.gov.in</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -470,6 +509,7 @@ function renderArenaView() {
   const student = getCurrentStudentSession();
   const xp = student && student.xp ? student.xp : 0;
   const todayLabel = new Date().toLocaleDateString('en-CA');
+  const leaderboard = SCELL_DATA.arena.leaderboard || [];
 
   return `
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -489,33 +529,43 @@ function renderArenaView() {
             <span class="text-xs font-mono text-slate-400 font-normal">SEASON 2026</span>
           </h3>
 
-          <div class="space-y-4">
-            ${SCELL_DATA.arena.leaderboard.map(item => `
-              <div class="flex items-center justify-between p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 hover:border-brand-neon/40 transition">
-                <div class="flex items-center gap-4">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm ${item.rank === 1 ? 'bg-amber-400 text-black' : item.rank === 2 ? 'bg-slate-300 text-black' : item.rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-300'}">
-                    0${item.rank}
+          ${leaderboard.length === 0 ? `
+            <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-8 text-center">
+              <div class="w-14 h-14 mx-auto rounded-full border border-brand-electric/30 bg-brand-electric/10 flex items-center justify-center text-brand-electric dark:text-brand-neon mb-4">
+                <i data-lucide="trophy" class="w-7 h-7"></i>
+              </div>
+              <h4 class="text-xl font-bold font-editorial mb-2">Leaderboard is waiting for official entries</h4>
+              <p class="text-sm text-slate-500 font-mono">The admin can publish verified names, scores, and badges here as soon as the official arena records are ready.</p>
+            </div>
+          ` : `
+            <div class="space-y-4">
+              ${leaderboard.map(item => `
+                <div class="flex items-center justify-between p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 hover:border-brand-neon/40 transition">
+                  <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm ${item.rank === 1 ? 'bg-amber-400 text-black' : item.rank === 2 ? 'bg-slate-300 text-black' : item.rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-300'}">
+                      0${item.rank}
+                    </div>
+                    <div>
+                      <div class="font-bold text-sm">${item.name}</div>
+                      <div class="text-[10px] font-mono text-slate-400">ROLL: ${item.roll || 'TBA'} · LVL ${item.level || 'TBA'}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div class="font-bold text-sm">${item.name}</div>
-                    <div class="text-[10px] font-mono text-slate-400">ROLL: ${item.roll} · LVL ${item.level}</div>
-                  </div>
-                </div>
 
-                <div class="flex items-center gap-6">
-                  <div class="hidden sm:flex gap-1.5">
-                    ${item.badges.map(b => `<span class="px-2 py-0.5 rounded bg-brand-electric/10 text-brand-electric dark:text-brand-neon text-[9px] font-mono">${b}</span>`).join('')}
-                  </div>
-                  <div class="text-right">
-                    <div class="font-mono font-bold text-brand-electric dark:text-brand-neon text-sm">${item.xp} XP</div>
-                    <div class="w-16 bg-slate-800 h-1 rounded-full mt-1 overflow-hidden">
-                      <div class="bg-brand-neon h-full" style="width: ${(item.xp / 1500) * 100}%"></div>
+                  <div class="flex items-center gap-6">
+                    <div class="hidden sm:flex gap-1.5">
+                      ${(item.badges || []).map(b => `<span class="px-2 py-0.5 rounded bg-brand-electric/10 text-brand-electric dark:text-brand-neon text-[9px] font-mono">${b}</span>`).join('')}
+                    </div>
+                    <div class="text-right">
+                      <div class="font-mono font-bold text-brand-electric dark:text-brand-neon text-sm">${item.xp || 0} XP</div>
+                      <div class="w-16 bg-slate-800 h-1 rounded-full mt-1 overflow-hidden">
+                        <div class="bg-brand-neon h-full" style="width: ${((item.xp || 0) / 1500) * 100}%"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            `).join('')}
-          </div>
+              `).join('')}
+            </div>
+          `}
         </div>
 
         <div class="lg:col-span-4 space-y-6">
@@ -578,11 +628,11 @@ function renderMemoriesView() {
 
 /* TEAM VIEW */
 function renderTeamView() {
-  const faculty = SCELL_DATA.team.faculty[0];
+  const faculty = SCELL_DATA.team.faculty && SCELL_DATA.team.faculty[0];
   const coordinator = SCELL_DATA.team.districtCoordinator;
   const reps = SCELL_DATA.team.studentRepresentatives || [];
+  const coordinators = SCELL_DATA.team.coordinators || [];
   const developer = SCELL_DATA.team.developedBy;
-
   const safeImage = (img, fallback) => img || fallback;
 
   return `
@@ -607,47 +657,58 @@ function renderTeamView() {
             <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
             <span class="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-900/60">STUDENT REPRESENTATIVES</span>
             <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
-            <span class="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-900/60">DEVELOPED BY</span>
+            <span class="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-900/60">COORDINATORS</span>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-slate-950/90 p-5 text-white shadow-2xl">
-            <div class="flex items-center justify-between mb-4">
-              <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-brand-neon">FACULTY NODE</span>
-              <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-300 font-mono uppercase">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVE
-              </span>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-5 items-start">
-              <img src="${safeImage(faculty.image, getTeamPhotoDefault('faculty'))}" alt="${faculty.name}" class="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-2 border-brand-electric/60 shadow-lg shadow-brand-electric/25" />
-              <div class="flex-1">
-                <h3 class="text-2xl font-bold font-editorial">${faculty.name}</h3>
-                <p class="mt-2 text-sm text-slate-300 font-mono">${faculty.designation}</p>
-                <p class="mt-2 text-xs text-slate-400 font-mono">${faculty.org}</p>
-                <p class="mt-4 text-sm text-slate-300 leading-relaxed">${faculty.description}</p>
+        ${(faculty || coordinator || reps.length || coordinators.length) ? `
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            ${faculty ? `
+              <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-slate-950/90 p-5 text-white shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                  <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-brand-neon">FACULTY NODE</span>
+                  <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-300 font-mono uppercase">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVE
+                  </span>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-5 items-start">
+                  <img src="${safeImage(faculty.image, getTeamPhotoDefault('faculty'))}" alt="${faculty.name || 'Faculty In-charge'}" class="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-2 border-brand-electric/60 shadow-lg shadow-brand-electric/25" />
+                  <div class="flex-1">
+                    <h3 class="text-2xl font-bold font-editorial">${faculty.name || 'Faculty In-Charge'}</h3>
+                    <p class="mt-2 text-sm text-slate-300 font-mono">${faculty.designation || 'To be updated'}</p>
+                    <p class="mt-2 text-xs text-slate-400 font-mono">${faculty.org || 'Official SCELL liaison'}</p>
+                    <p class="mt-4 text-sm text-slate-300 leading-relaxed">${faculty.description || 'Admin can add the final faculty details here.'}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            ` : ''}
 
-          <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 p-5 shadow-xl backdrop-blur">
-            <div class="flex items-center justify-between mb-4">
-              <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-brand-electric dark:text-brand-neon">DISTRICT NODE</span>
-              <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-400 font-mono uppercase">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVE
-              </span>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-5 items-start">
-              <img src="${safeImage(coordinator.image, getTeamPhotoDefault('districtCoordinator'))}" alt="${coordinator.name}" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border border-slate-300 dark:border-slate-700 shadow-md" />
-              <div class="flex-1">
-                <h3 class="text-xl font-bold font-editorial">${coordinator.name}</h3>
-                <p class="mt-2 text-sm text-brand-electric dark:text-brand-neon font-mono">${coordinator.designation}</p>
-                <p class="mt-2 text-xs text-slate-500 font-mono">${coordinator.org}</p>
-                <p class="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">${coordinator.description}</p>
+            ${coordinator ? `
+              <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 p-5 shadow-xl backdrop-blur">
+                <div class="flex items-center justify-between mb-4">
+                  <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-brand-electric dark:text-brand-neon">DISTRICT NODE</span>
+                  <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-400 font-mono uppercase">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVE
+                  </span>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-5 items-start">
+                  <img src="${safeImage(coordinator.image, getTeamPhotoDefault('districtCoordinator'))}" alt="${coordinator.name || 'District Startup Coordinator'}" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border border-slate-300 dark:border-slate-700 shadow-md" />
+                  <div class="flex-1">
+                    <h3 class="text-xl font-bold font-editorial">${coordinator.name || 'District Startup Coordinator'}</h3>
+                    <p class="mt-2 text-sm text-brand-electric dark:text-brand-neon font-mono">${coordinator.designation || 'To be updated'}</p>
+                    <p class="mt-2 text-xs text-slate-500 font-mono">${coordinator.org || 'Official district liaison'}</p>
+                    <p class="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">${coordinator.description || 'Admin can add the official district coordinator profile.'}</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            ` : ''}
           </div>
-        </div>
+        ` : `
+          <div class="rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-8 text-center">
+            <h3 class="text-2xl font-bold font-editorial mb-2">Leadership roster pending approval</h3>
+            <p class="text-sm text-slate-500 font-mono">Faculty, district liaison and representative details will appear here after official SCELL admin updates.</p>
+          </div>
+        `}
       </div>
 
       <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-brand-cardDark/60 p-6 sm:p-8">
@@ -656,28 +717,61 @@ function renderTeamView() {
             <p class="font-mono text-[10px] uppercase tracking-[0.25em] text-brand-electric dark:text-brand-neon">STUDENT REPRESENTATIVES</p>
             <h2 class="text-2xl sm:text-3xl font-extrabold font-editorial mt-2">Campus Voice & Student Leadership</h2>
           </div>
-          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em]">2 ACTIVE NODES</span>
+          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em]">${reps.length} ACTIVE NODES</span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          ${reps.map((rep, index) => `
-            <div class="group rounded-3xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-5 shadow-lg hover:-translate-y-1 transition-all duration-200">
-              <div class="flex items-center gap-4">
-                <img src="${safeImage(rep.image, getTeamPhotoDefault(index === 0 ? 'pratik' : 'ananya'))}" alt="${rep.name}" class="w-20 h-20 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-md" />
-                <div class="flex-1">
-                  <div class="flex items-center justify-between gap-3">
-                    <h3 class="text-xl font-bold font-editorial">${rep.name}</h3>
-                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-400 font-mono uppercase">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVE
-                    </span>
+        ${reps.length === 0 ? `
+          <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-6 text-center text-slate-500 font-mono">Student representative roster is not published yet.</div>
+        ` : `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            ${reps.map((rep, index) => `
+              <div class="group rounded-3xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-5 shadow-lg hover:-translate-y-1 transition-all duration-200">
+                <div class="flex items-center gap-4">
+                  <img src="${safeImage(rep.image, getTeamPhotoDefault(index === 0 ? 'pratik' : 'ananya'))}" alt="${rep.name}" class="w-20 h-20 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-md" />
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between gap-3">
+                      <h3 class="text-xl font-bold font-editorial">${rep.name}</h3>
+                      <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-400 font-mono uppercase">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVE
+                      </span>
+                    </div>
+                    <p class="mt-2 text-sm text-brand-electric dark:text-brand-neon font-mono">${rep.role || 'Student Representative'}</p>
+                    <p class="mt-1 text-xs text-slate-500 font-mono">Batch: ${rep.batch || 'To be updated'}</p>
                   </div>
-                  <p class="mt-2 text-sm text-brand-electric dark:text-brand-neon font-mono">${rep.role}</p>
-                  <p class="mt-1 text-xs text-slate-500 font-mono">Batch: ${rep.batch}</p>
                 </div>
               </div>
-            </div>
-          `).join('')}
+            `).join('')}
+          </div>
+        `}
+      </div>
+
+      <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-brand-cardDark/60 p-6 sm:p-8">
+        <div class="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <p class="font-mono text-[10px] uppercase tracking-[0.25em] text-brand-electric dark:text-brand-neon">COORDINATORS</p>
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-editorial mt-2">Operational Team</h2>
+          </div>
+          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em]">${coordinators.length} entries</span>
         </div>
+
+        ${coordinators.length === 0 ? `
+          <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-6 text-center text-slate-500 font-mono">Coordinator list is pending official approval.</div>
+        ` : `
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            ${coordinators.map(member => `
+              <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                  <img src="${safeImage(member.image, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop')}" alt="${member.name}" class="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                  <div>
+                    <div class="font-bold">${member.name}</div>
+                    <div class="text-[11px] text-slate-500 font-mono">${member.role || member.designation || 'Coordinator'}</div>
+                  </div>
+                </div>
+                <div class="text-[11px] font-mono text-slate-500">${member.batch || member.org || 'Official SCELL role'}</div>
+              </div>
+            `).join('')}
+          </div>
+        `}
       </div>
 
       <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-950 text-white p-6 sm:p-8 shadow-[0_25px_90px_rgba(0,240,255,0.08)]">
@@ -1075,9 +1169,8 @@ function renderAdminView() {
             <select id="team-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
               <option value="Faculty In-Charge">Faculty In-Charge</option>
               <option value="District Startup Coordinator">District Startup Coordinator</option>
-              <option value="Student Representatives">Student Representatives</option>
-              <option value="Student Coordinators">Student Coordinators</option>
-              <option value="Core Team">Core Team</option>
+              <option value="Student Representatives" selected>Student Representatives</option>
+              <option value="Coordinators">Coordinators</option>
             </select>
           </div>
           <div>
@@ -1085,7 +1178,7 @@ function renderAdminView() {
             <input id="team-photo" type="url" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
           </div>
           <div>
-            <label class="block mb-1 text-slate-500 dark:text-slate-300">Department</label>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Department / Organisation</label>
             <input id="team-department" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
           </div>
           <div>
@@ -1120,19 +1213,31 @@ function renderAdminView() {
 
       <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
         <h3 class="text-xl font-bold font-editorial mb-4">Member Directory</h3>
-        <div class="space-y-3">
-          ${(SCELL_DATA.team.studentRepresentatives || []).map((member, index) => `
-            <div class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
-              <div class="flex items-center gap-3">
-                <img src="${member.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop'}" class="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
-                <div>
-                  <div class="font-bold">${member.name}</div>
-                  <div class="text-[11px] text-slate-500 font-mono">${member.role} · ${member.batch || 'Batch TBD'}</div>
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <button onclick="prefillTeamMember('${member.name}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
-                <button onclick="deleteTeamMember('${member.name}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">REMOVE</button>
+        <div class="space-y-4">
+          ${[
+            { title: 'Faculty In-Charge', items: SCELL_DATA.team.faculty || [] },
+            { title: 'District Startup Coordinator', items: SCELL_DATA.team.districtCoordinator ? [SCELL_DATA.team.districtCoordinator] : [] },
+            { title: 'Student Representatives', items: SCELL_DATA.team.studentRepresentatives || [] },
+            { title: 'Coordinators', items: SCELL_DATA.team.coordinators || [] }
+          ].map(group => `
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-3">
+              <div class="font-bold mb-3 text-sm uppercase tracking-widest text-slate-500">${group.title}</div>
+              <div class="space-y-3">
+                ${group.items.length === 0 ? '<div class="text-slate-500 text-[11px]">No members published yet.</div>' : group.items.map(member => `
+                  <div class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                    <div class="flex items-center gap-3">
+                      <img src="${member.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop'}" class="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                      <div>
+                        <div class="font-bold">${member.name || 'To be updated'}</div>
+                        <div class="text-[11px] text-slate-500 font-mono">${member.role || member.designation || group.title} · ${member.batch || member.org || 'Manual entry'}</div>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button onclick="prefillTeamMember('${member.name}', '${group.title}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
+                      <button onclick="deleteTeamMember('${member.name}', '${group.title}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">REMOVE</button>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
             </div>
           `).join('')}
