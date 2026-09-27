@@ -144,6 +144,59 @@ const SCELL_DATA = {
   ]
 };
 
+function getLocalUsers() {
+  try {
+    const raw = localStorage.getItem('scell_users_v1');
+    return raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveLocalUsers(users) {
+  localStorage.setItem('scell_users_v1', JSON.stringify(users));
+}
+
+function getLocalOtrProfiles() {
+  try {
+    const raw = localStorage.getItem('scell_otr_profiles_v1');
+    return raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveLocalOtrProfiles(data) {
+  localStorage.setItem('scell_otr_profiles_v1', JSON.stringify(data));
+}
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+async function hashPassword(value) {
+  const str = String(value || '');
+  if (window.crypto && window.crypto.subtle) {
+    const buffer = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(str + 'scell-gecwc'));
+    return Array.from(new Uint8Array(buffer)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+  return btoa(unescape(encodeURIComponent(str + 'scell-gecwc')));
+}
+
+function getLocalUserByIdentifier(identifier) {
+  const value = String(identifier || '').trim();
+  if (!value) return null;
+  const users = getLocalUsers();
+  return users.find((user) => user.roll === value || normalizeEmail(user.email) === normalizeEmail(value));
+}
+
+function getLocalUserByRoll(roll) {
+  const value = String(roll || '').trim();
+  if (!value) return null;
+  const users = getLocalUsers();
+  return users.find((user) => String(user.roll).trim() === value);
+}
+
 function hydratePersistedScellData() {
   const saved = JSON.parse(localStorage.getItem('scell_cms_state_v1') || 'null');
   if (!saved) return;
@@ -218,7 +271,10 @@ function getCurrentStudentSession() {
 
 function saveCurrentStudentSession(student) {
   if (!student) return;
-  sessionStorage.setItem('scell_student_session', JSON.stringify(student));
+  const safeStudent = { ...student };
+  delete safeStudent.password;
+  delete safeStudent.password_hash;
+  sessionStorage.setItem('scell_student_session', JSON.stringify(safeStudent));
 }
 
 async function ensureStorageBucket() {
@@ -320,9 +376,13 @@ async function syncFromCloud() {
 }
 
 async function lookupStudentByRoll(roll) {
-  if (!db || !roll) return null;
-  const normalized = String(roll).trim();
+  const normalized = String(roll || '').trim();
   if (!normalized) return null;
+
+  const localUser = getLocalUserByRoll(normalized);
+  if (localUser) return { ...localUser, password: undefined, password_hash: undefined };
+
+  if (!db) return null;
 
   const { data, error } = await db.from('students').select('*').eq('roll', normalized).maybeSingle();
   if (error) {
@@ -333,9 +393,14 @@ async function lookupStudentByRoll(roll) {
 }
 
 async function fetchStudentByIdentifier(identifier) {
-  if (!db || !identifier) return null;
-  const value = String(identifier).trim();
+  const value = String(identifier || '').trim();
   if (!value) return null;
+
+  const localUser = getLocalUserByIdentifier(value);
+  if (localUser) return { ...localUser, password: undefined, password_hash: undefined };
+
+  if (!db) return null;
+
   const { data, error } = await db.from('students').select('*').or(`roll.eq.${value},email.eq.${value}`).maybeSingle();
   if (error) {
     console.warn('Student identifier lookup failed:', error.message);
@@ -382,7 +447,7 @@ function generateRegistrationId() {
 }
 
 function generateDailyOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(Math.floor(100000 + Math.random() * 900000)).padStart(6, '0');
 }
 
 function createRegistrationPayload({ id, eventId, eventName, name, roll, email, branch, sem, year, batch, phone, qrData, status = 'confirmed' }) {

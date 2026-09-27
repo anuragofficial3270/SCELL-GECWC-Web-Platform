@@ -373,12 +373,15 @@
       </button>
 
       <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           <button id="tab-login-btn" onclick="switchAuthTab('login')" class="px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer bg-brand-electric text-white shadow-md shadow-brand-electric/25">
             Student Login
           </button>
           <button id="tab-register-btn" onclick="switchAuthTab('register')" class="px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white">
             New Registration
+          </button>
+          <button id="tab-reset-btn" onclick="switchAuthTab('reset')" class="px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white">
+            Reset Password
           </button>
         </div>
         <span class="text-[10px] font-mono text-brand-neon hidden sm:inline">// SCELL_CADRE_GATEWAY</span>
@@ -409,6 +412,44 @@
           <p class="text-center text-slate-500 text-[11px] pt-2">
             New to SCELL GECWC? <a href="#" onclick="switchAuthTab('register')" class="text-brand-electric dark:text-brand-neon hover:underline font-bold">Create Account</a>
           </p>
+          <p class="text-center text-slate-500 text-[11px]">
+            <a href="#" onclick="event.preventDefault(); switchAuthTab('reset')" class="text-brand-electric dark:text-brand-neon hover:underline font-bold">Forgot password?</a>
+          </p>
+        </form>
+      </div>
+
+      <div id="auth-reset-view" class="hidden space-y-4">
+        <div>
+          <h3 class="text-2xl font-bold font-editorial">Password Reset</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">Request a reset token, then set a new password for your existing SCELL account.</p>
+        </div>
+
+        <form onsubmit="handleForgotPassword(event)" class="space-y-4 font-mono text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">Registered Email Address *</label>
+            <input type="email" name="email" required placeholder="name@gecwc.ac.in" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+          </div>
+          <button type="submit" class="w-full py-3 rounded-xl bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider uppercase transition cursor-pointer shadow-lg shadow-brand-electric/30">
+            Generate reset token
+          </button>
+        </form>
+
+        <form onsubmit="handleResetPassword(event)" class="space-y-4 font-mono text-xs mt-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+          <div>
+            <label class="block text-slate-400 mb-1">Email Address *</label>
+            <input type="email" name="email" required placeholder="name@gecwc.ac.in" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Reset Token *</label>
+            <input type="text" name="token" required placeholder="e.g. ABC123XYZ" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">New Password *</label>
+            <input type="password" name="password" required placeholder="Minimum 6 characters" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none text-slate-800 dark:text-white">
+          </div>
+          <button type="submit" class="w-full py-3 rounded-xl bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider uppercase transition cursor-pointer shadow-lg shadow-brand-electric/30">
+            Reset password
+          </button>
         </form>
       </div>
 

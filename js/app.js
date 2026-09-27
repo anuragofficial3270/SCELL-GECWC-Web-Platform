@@ -8,6 +8,356 @@ const SCELL_APP_STATE = {
   pendingRole: null
 };
 
+function getStoredSessionUser() {
+  try {
+    const raw = sessionStorage.getItem('scell_student_session');
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function createLocalStudentAccount(account) {
+  const users = JSON.parse(localStorage.getItem('scell_users_v1') || '[]');
+  const email = String(account.email || '').trim().toLowerCase();
+  const roll = String(account.roll || '').trim();
+  const duplicate = users.some((user) => (user.email && normalizeEmail(user.email) === email) || (user.roll && String(user.roll).trim() === roll));
+  if (duplicate) {
+    throw new Error('An account with this email or roll number already exists.');
+  }
+
+  const passwordHash = await hashPassword(account.password);
+  const user = {
+    id: `user_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
+    name: account.name,
+    roll,
+    branch: account.branch,
+    batch: account.batch,
+    year: account.year,
+    sem: account.sem,
+    email,
+    mobile: account.mobile,
+    domain: account.domain,
+    photo_url: account.photo_url || '',
+    password_hash: passwordHash,
+    created_at: new Date().toISOString()
+  };
+
+  users.push(user);
+  localStorage.setItem('scell_users_v1', JSON.stringify(users));
+  return user;
+}
+
+async function authenticateLocalStudent(identifier, password) {
+  const users = JSON.parse(localStorage.getItem('scell_users_v1') || '[]');
+  const value = String(identifier || '').trim();
+  if (!value || !password) return null;
+
+  const user = users.find((entry) => String(entry.roll).trim() === value || normalizeEmail(entry.email) === normalizeEmail(value));
+  if (!user) return null;
+
+  const passwordHash = await hashPassword(password);
+  if (user.password_hash !== passwordHash) return null;
+
+  return { ...user, password: undefined, password_hash: undefined };
+}
+
+function renderUserDashboard() {
+  const session = getStoredSessionUser();
+  if (!session) {
+    return `
+      <div class="max-w-2xl mx-auto px-4 py-20">
+        <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark p-8 text-center shadow-xl">
+          <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-brand-electric/10 text-brand-electric dark:text-brand-neon">
+            <i data-lucide="lock" class="w-6 h-6"></i>
+          </div>
+          <p class="text-[10px] font-mono uppercase tracking-[0.25em] text-brand-electric dark:text-brand-neon">Member portal</p>
+          <h2 class="mt-3 text-3xl font-bold font-editorial">Student dashboard</h2>
+          <p class="mt-3 text-sm text-slate-500 font-mono">Please sign in to view your profile, registrations, and event access.</p>
+          <button onclick="openAuthModal('login')" class="mt-6 px-6 py-3 rounded-xl bg-brand-electric text-white font-mono text-xs font-bold uppercase cursor-pointer">Login to continue</button>
+        </div>
+      </div>
+    `;
+  }
+
+  const records = JSON.parse(localStorage.getItem('scell_event_registrations_v1') || '[]');
+  const userRegistrations = records.filter((registration) => registration.userId === session.id || normalizeEmail(registration.email) === normalizeEmail(session.email));
+  const otrProfiles = JSON.parse(localStorage.getItem('scell_otr_profiles_v1') || '[]');
+  const profile = otrProfiles.find((entry) => normalizeEmail(entry.email) === normalizeEmail(session.email) || String(entry.roll).trim() === String(session.roll).trim()) || {};
+
+  const fieldRows = [
+    ['Full Name', profile.fullName || session.name || '—'],
+    ['Email', profile.email || session.email || '—'],
+    ['Mobile', profile.mobile || session.mobile || '—'],
+    ['Roll Number', profile.roll || session.roll || '—'],
+    ['Course / Programme', profile.course || session.domain || '—'],
+    ['Branch / Department', profile.branch || session.branch || '—'],
+    ['Academic Year / Batch', profile.batch || session.batch || '—'],
+    ['College / Institution', profile.college || 'Government Engineering College, West Champaran']
+  ];
+
+  const registrationRows = userRegistrations.length
+    ? userRegistrations.map((entry) => `
+        <tr class="border-t border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+          <td class="px-3 py-3">${entry.eventName || 'Event'}</td>
+          <td class="px-3 py-3">${entry.registrationId || '—'}</td>
+          <td class="px-3 py-3">${entry.status || 'REGISTERED'}</td>
+          <td class="px-3 py-3">${entry.venue || 'Campus'}</td>
+          <td class="px-3 py-3"><button class="px-2 py-1 rounded border border-brand-electric/30 text-brand-electric dark:text-brand-neon text-[10px] font-mono uppercase cursor-pointer">QR</button></td>
+        </tr>
+      `).join('')
+    : `
+        <tr class="border-t border-slate-200 dark:border-slate-800">
+          <td colspan="5" class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400">No registrations yet. Visit the events page to apply.</td>
+        </tr>
+      `;
+
+  return `
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-[10px] font-mono uppercase tracking-[0.25em] text-brand-electric dark:text-brand-neon">Member portal</p>
+          <h1 class="mt-2 text-3xl font-bold font-editorial">My Dashboard</h1>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="navigate('events')" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-mono uppercase">Events</button>
+          <button onclick="openOtrEditor()" class="px-4 py-2 rounded-xl bg-brand-electric text-white text-xs font-mono uppercase">${Object.keys(profile).length ? 'Update OTR' : 'Complete OTR'}</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
+        <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark p-6 shadow-xl">
+          <div class="flex items-center gap-4 mb-6">
+            <img src="${session.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200'}" class="w-16 h-16 rounded-full object-cover border border-slate-200 dark:border-slate-700" alt="avatar">
+            <div>
+              <div class="text-xs font-mono uppercase tracking-[0.2em] text-brand-electric dark:text-brand-neon">Profile</div>
+              <h2 class="text-2xl font-bold font-editorial">${session.name}</h2>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${fieldRows.map(([label, value]) => `
+              <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-3">
+                <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-slate-400">${label}</div>
+                <div class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">${value}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark p-6 shadow-xl">
+          <div class="text-xs font-mono uppercase tracking-[0.2em] text-brand-electric dark:text-brand-neon mb-4">Quick actions</div>
+          <div class="space-y-3">
+            <button onclick="navigate('events')" class="w-full text-left rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-3 font-mono text-xs uppercase">Browse events</button>
+            <button onclick="openOtrEditor()" class="w-full text-left rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-3 font-mono text-xs uppercase">Update OTR</button>
+            <button onclick="handleStudentLogout()" class="w-full text-left rounded-2xl border border-red-500/40 bg-red-500/5 p-3 font-mono text-xs uppercase text-red-400">Logout</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <h3 class="text-xl font-bold font-editorial">My registrations</h3>
+          <span class="text-[10px] font-mono uppercase text-slate-500">${userRegistrations.length} entries</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+            <thead class="bg-slate-50 dark:bg-slate-950/50">
+              <tr class="text-left text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400">
+                <th class="px-3 py-3">Event</th>
+                <th class="px-3 py-3">Registration ID</th>
+                <th class="px-3 py-3">Status</th>
+                <th class="px-3 py-3">Venue</th>
+                <th class="px-3 py-3">QR</th>
+              </tr>
+            </thead>
+            <tbody>${registrationRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openOtrEditor() {
+  const session = getStoredSessionUser();
+  if (!session) {
+    openAuthModal('login');
+    return;
+  }
+
+  const profiles = JSON.parse(localStorage.getItem('scell_otr_profiles_v1') || '[]');
+  const profile = profiles.find((item) => normalizeEmail(item.email) === normalizeEmail(session.email) || String(item.roll || '').trim() === String(session.roll || '').trim()) || {
+    fullName: session.name || '',
+    email: session.email || '',
+    mobile: session.mobile || '',
+    roll: session.roll || '',
+    course: session.domain || '',
+    branch: session.branch || '',
+    batch: session.batch || '',
+    college: 'Government Engineering College, West Champaran',
+    state: 'Bihar',
+    city: 'West Champaran'
+  };
+
+  const modal = document.createElement('div');
+  modal.id = 'scell-otr-modal';
+  modal.innerHTML = `
+    <div class="fixed inset-0 z-[60] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="w-full max-w-3xl rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-brand-surface p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <p class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-electric dark:text-brand-neon">OTR registration</p>
+            <h2 class="text-2xl font-bold font-editorial mt-1">Complete your profile</h2>
+          </div>
+          <button onclick="document.getElementById('scell-otr-modal')?.remove()" class="text-slate-500 hover:text-red-400 cursor-pointer">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <form onsubmit="submitOtrProfile(event)" class="space-y-4 font-mono text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="block mb-1 text-slate-400">Full Name *</label><input name="fullName" required value="${profile.fullName || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+            <div><label class="block mb-1 text-slate-400">Email *</label><input name="email" type="email" required value="${profile.email || session.email || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="block mb-1 text-slate-400">Mobile Number *</label><input name="mobile" type="tel" required value="${profile.mobile || session.mobile || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+            <div><label class="block mb-1 text-slate-400">Roll Number *</label><input name="roll" required value="${profile.roll || session.roll || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="block mb-1 text-slate-400">Course / Programme *</label><input name="course" required value="${profile.course || session.domain || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+            <div><label class="block mb-1 text-slate-400">Branch / Department *</label><input name="branch" required value="${profile.branch || session.branch || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div><label class="block mb-1 text-slate-400">Batch *</label><input name="batch" required value="${profile.batch || session.batch || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+            <div><label class="block mb-1 text-slate-400">College / Institution *</label><input name="college" required value="${profile.college || 'Government Engineering College, West Champaran'}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+            <div><label class="block mb-1 text-slate-400">State</label><input name="state" value="${profile.state || 'Bihar'}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="block mb-1 text-slate-400">City / District</label><input name="city" value="${profile.city || 'West Champaran'}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+            <div><label class="block mb-1 text-slate-400">Gender</label><input name="gender" value="${profile.gender || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></div>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" onclick="document.getElementById('scell-otr-modal')?.remove()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-mono uppercase">Cancel</button>
+            <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-electric text-white text-xs font-mono uppercase">Save profile</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function submitOtrProfile(event) {
+  event.preventDefault();
+  const session = getStoredSessionUser();
+  if (!session) {
+    showToast('Please login to save your OTR.');
+    return;
+  }
+
+  const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const profile = {
+    ...data,
+    email: normalizeEmail(data.email || session.email),
+    roll: String(data.roll || session.roll || '').trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  const profiles = JSON.parse(localStorage.getItem('scell_otr_profiles_v1') || '[]');
+  const index = profiles.findIndex((entry) => normalizeEmail(entry.email) === normalizeEmail(profile.email) || String(entry.roll || '').trim() === String(profile.roll).trim());
+  if (index >= 0) profiles[index] = { ...profiles[index], ...profile };
+  else profiles.push(profile);
+  localStorage.setItem('scell_otr_profiles_v1', JSON.stringify(profiles));
+
+  document.getElementById('scell-otr-modal')?.remove();
+  const merged = { ...session, ...profile, name: profile.fullName || session.name };
+  saveCurrentStudentSession(merged);
+  renderRoute('dashboard');
+  showToast('Your OTR profile has been saved.');
+}
+
+function forgotPasswordResetCode(email) {
+  const token = Math.random().toString(36).slice(2, 10).toUpperCase();
+  const key = normalizeEmail(email);
+  const payload = JSON.parse(localStorage.getItem('scell_reset_tokens_v1') || '{}');
+  payload[key] = { token, expiresAt: Date.now() + 900000 };
+  localStorage.setItem('scell_reset_tokens_v1', JSON.stringify(payload));
+  return token;
+}
+
+async function handleForgotPassword(event) {
+  event.preventDefault();
+  const email = event.currentTarget.email.value.trim();
+  const users = JSON.parse(localStorage.getItem('scell_users_v1') || '[]');
+  const existing = users.some((user) => normalizeEmail(user.email) === normalizeEmail(email));
+  if (!existing) {
+    showToast('No account found for that email.');
+    return;
+  }
+  const code = forgotPasswordResetCode(email);
+  alert(`Your SCELL reset token is: ${code}`);
+  showToast('Reset token generated. Use it to set a new password.');
+  switchAuthTab('login');
+}
+
+async function handleResetPassword(event) {
+  event.preventDefault();
+  const email = event.currentTarget.email.value.trim();
+  const token = String(event.currentTarget.token.value || '').trim().toUpperCase();
+  const password = String(event.currentTarget.password.value || '').trim();
+
+  if (password.length < 6) {
+    showToast('Password must contain at least 6 characters.');
+    return;
+  }
+
+  const payload = JSON.parse(localStorage.getItem('scell_reset_tokens_v1') || '{}');
+  const record = payload[normalizeEmail(email)];
+  if (!record || record.token !== token || Date.now() > record.expiresAt) {
+    showToast('Invalid or expired reset token.');
+    return;
+  }
+
+  const users = JSON.parse(localStorage.getItem('scell_users_v1') || '[]');
+  const index = users.findIndex((user) => normalizeEmail(user.email) === normalizeEmail(email));
+  if (index === -1) {
+    showToast('Account not found.');
+    return;
+  }
+
+  users[index].password_hash = await hashPassword(password);
+  localStorage.setItem('scell_users_v1', JSON.stringify(users));
+  delete payload[normalizeEmail(email)];
+  localStorage.setItem('scell_reset_tokens_v1', JSON.stringify(payload));
+  showToast('Password reset successful. Please login.');
+  switchAuthTab('login');
+}
+
+function normalizeOtpInput(value) {
+  return String(value ?? '').trim().replace(/\s+/g, '');
+}
+
+function isOtpExpired(candidate) {
+  return !candidate || !candidate.expiresAt || Date.now() > candidate.expiresAt;
+}
+
+function getOrCreatePendingOtp(email) {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase();
+  const current = SCELL_APP_STATE.pendingOtp;
+
+  if (!current || !current.email || current.email !== normalizedEmail || isOtpExpired(current)) {
+    const otp = generateDailyOtp();
+    SCELL_APP_STATE.pendingOtp = {
+      email: normalizedEmail,
+      otp,
+      expiresAt: Date.now() + 300000
+    };
+    return { otp, isFresh: true };
+  }
+
+  return { otp: current.otp, isFresh: false };
+}
+
 const SCELL_ADMIN_STATE = {
   activeTab: 'missions',
   editingEventId: null,
@@ -127,6 +477,9 @@ function renderRoute(route, param = null) {
       break;
     case 'admin':
       app.innerHTML = renderAdminView();
+      break;
+    case 'dashboard':
+      app.innerHTML = renderUserDashboard();
       break;
     default:
       app.innerHTML = renderHomeView();
@@ -662,22 +1015,35 @@ function closeAuthModal() {
 function switchAuthTab(tab) {
   const loginView = document.getElementById('auth-login-view');
   const registerView = document.getElementById('auth-register-view');
+  const resetView = document.getElementById('auth-reset-view');
   const loginBtn = document.getElementById('tab-login-btn');
   const regBtn = document.getElementById('tab-register-btn');
+  const resetBtn = document.getElementById('tab-reset-btn');
 
   if (!loginView || !registerView || !loginBtn || !regBtn) return;
 
-  if (tab === 'login') {
-    loginView.classList.remove('hidden');
-    registerView.classList.add('hidden');
+  const showLogin = tab === 'login';
+  const showRegister = tab === 'register';
+  const showReset = tab === 'reset';
+
+  loginView.classList.toggle('hidden', !showLogin);
+  registerView.classList.toggle('hidden', !showRegister);
+  if (resetView) resetView.classList.toggle('hidden', !showReset);
+
+  if (showLogin) {
     loginBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer bg-brand-electric text-white shadow-md shadow-brand-electric/25";
     regBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white";
-  } else {
-    loginView.classList.add('hidden');
-    registerView.classList.remove('hidden');
-    regBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer bg-brand-electric text-white shadow-md shadow-brand-electric/25";
+    if (resetBtn) resetBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white";
+  } else if (showRegister) {
     loginBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white";
+    regBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer bg-brand-electric text-white shadow-md shadow-brand-electric/25";
+    if (resetBtn) resetBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white";
+  } else if (showReset && resetView) {
+    loginBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white";
+    regBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer text-slate-400 hover:text-white";
+    if (resetBtn) resetBtn.className = "px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase transition cursor-pointer bg-brand-electric text-white shadow-md shadow-brand-electric/25";
   }
+
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -724,62 +1090,41 @@ async function handleStudentRegister(e) {
     return;
   }
 
-  if (!db) {
+  if (!name || !roll || !email || !mobile || !password || password.length < 6) {
     if (errBox) {
-      errBox.innerText = 'Database connection is not configured.';
+      errBox.innerText = 'Please complete all required fields and use a password with at least 6 characters.';
       errBox.classList.remove('hidden');
     }
     return;
   }
 
-  const otp = generateDailyOtp();
-  const otpVerified = window.prompt('Enter the 6-digit OTP sent to your institutional email:');
-  const expectedOtp = SCELL_APP_STATE.pendingOtp?.otp || otp;
+  try {
+    const user = await createLocalStudentAccount({
+      name,
+      roll,
+      branch,
+      batch,
+      year,
+      sem,
+      email,
+      mobile,
+      domain,
+      photo_url: uploadedStudentPhotoBase64,
+      password
+    });
 
-  if (!otpVerified || otpVerified.trim() !== expectedOtp) {
-    const sent = await triggerOtpEmail(email, otp, name);
-    SCELL_APP_STATE.pendingOtp = { email, otp, expiresAt: Date.now() + 300000 };
-    if (sent) {
-      showToast('OTP sent to your institutional email.');
-    }
-    const promptResult = window.prompt('Enter the 6-digit OTP sent to your institutional email to continue.');
-    if (!promptResult || promptResult.trim() !== otp) {
-      if (errBox) {
-        errBox.innerText = 'OTP verification failed. Please retry your registration.';
-        errBox.classList.remove('hidden');
-      }
-      return;
-    }
-  }
-
-  const { data, error } = await db.from('students').insert([{
-    name,
-    roll,
-    branch,
-    batch,
-    year,
-    sem,
-    email,
-    mobile,
-    domain,
-    photo_url: uploadedStudentPhotoBase64,
-    password
-  }]).select();
-
-  if (error) {
+    const sessionUser = { ...user, password: undefined, password_hash: undefined };
+    saveCurrentStudentSession(sessionUser);
+    closeAuthModal();
+    updateAuthNavbar();
+    showToast(`Welcome to SCELL GECWC, ${name}!`);
+    navigate('dashboard');
+  } catch (error) {
     if (errBox) {
-      errBox.innerText = 'Registration Error: ' + error.message;
+      errBox.innerText = error.message || 'Registration failed. Please try again.';
       errBox.classList.remove('hidden');
     }
-    return;
   }
-
-  const student = data[0];
-  saveCurrentStudentSession(student);
-  await triggerWelcomeEmail(student);
-  closeAuthModal();
-  updateAuthNavbar();
-  showToast(`Welcome to SCELL GECWC, ${name}!`);
 }
 
 async function handleStudentLogin(e) {
@@ -788,33 +1133,42 @@ async function handleStudentLogin(e) {
   const password = document.getElementById('login-password').value;
   const errBox = document.getElementById('login-error');
 
-  if (!db) {
-    if (errBox) {
-      errBox.innerText = 'Database connection is not configured.';
-      errBox.classList.remove('hidden');
-    }
+  const localUser = await authenticateLocalStudent(identifier, password);
+  if (localUser) {
+    saveCurrentStudentSession(localUser);
+    closeAuthModal();
+    updateAuthNavbar();
+    showToast(`Welcome back, ${localUser.name}!`);
+    navigate('dashboard');
     return;
   }
 
-  const { data, error } = await db
-    .from('students')
-    .select('*')
-    .or(`roll.eq.${identifier},email.eq.${identifier}`)
-    .eq('password', password)
-    .single();
+  if (db) {
+    try {
+      const { data, error } = await db
+        .from('students')
+        .select('*')
+        .or(`roll.eq.${identifier},email.eq.${identifier}`)
+        .eq('password', password)
+        .single();
 
-  if (error || !data) {
-    if (errBox) {
-      errBox.innerText = 'Invalid Roll No / Email or Password.';
-      errBox.classList.remove('hidden');
+      if (!error && data) {
+        saveCurrentStudentSession(data);
+        closeAuthModal();
+        updateAuthNavbar();
+        showToast(`Welcome back, ${data.name}!`);
+        navigate('dashboard');
+        return;
+      }
+    } catch (error) {
+      console.warn('Supabase student login fallback failed:', error);
     }
-    return;
   }
 
-  saveCurrentStudentSession(data);
-  closeAuthModal();
-  updateAuthNavbar();
-  showToast(`Welcome back, ${data.name}!`);
+  if (errBox) {
+    errBox.innerText = 'Invalid Roll No / Email or Password.';
+    errBox.classList.remove('hidden');
+  }
 }
 
 function handleStudentLogout() {
@@ -827,9 +1181,9 @@ function updateAuthNavbar() {
   const container = document.getElementById('auth-btn-container');
   if (!container) return;
 
-  const session = sessionStorage.getItem('scell_student_session');
+  const session = getStoredSessionUser();
   if (session) {
-    const student = JSON.parse(session);
+    const student = session;
     container.innerHTML = `
       <div class="flex items-center gap-2.5 bg-slate-100 dark:bg-brand-cardDark border border-slate-300 dark:border-slate-700 py-1.5 px-3 rounded-xl font-mono text-xs">
         <img src="${student.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100'}" class="w-7 h-7 rounded-full object-cover border border-brand-electric">
@@ -837,6 +1191,9 @@ function updateAuthNavbar() {
           <span class="font-bold block text-slate-800 dark:text-white leading-tight">${student.name.split(' ')[0]}</span>
           <span class="text-[9px] text-slate-400 block">${student.roll}</span>
         </div>
+        <button onclick="navigate('dashboard')" title="Dashboard" class="text-slate-500 hover:text-brand-electric dark:hover:text-brand-neon cursor-pointer">
+          <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+        </button>
         <button onclick="handleStudentLogout()" title="Logout" class="text-slate-400 hover:text-red-400 ml-1 cursor-pointer">
           <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
         </button>
