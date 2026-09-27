@@ -1,11 +1,9 @@
-// Supabase Live Credentials Connected
 const SUPABASE_URL = "https://evcslijagfygsnkirrpc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_52yxCR78Mo40JSL_UNMTmQ_t1D6qAtJ";
+const SCELL_STORAGE_BUCKET = "scell-assets";
 
-// Initialize Supabase Client directly via CDN library
 const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-// Master In-Memory Dataset
 const SCELL_DATA = {
   stats: {
     eventsCount: 0,
@@ -105,17 +103,15 @@ const SCELL_DATA = {
     ]
   },
   team: {
-    faculty: [
-      {
-        name: "Mr. Om Prakash Ram",
-        designation: "Faculty Incharge, Startup Cell",
-        org: "Government Engineering College, West Champaran",
-        description: "Guiding institutional innovation strategy, entrepreneurship mentorship, and student-led prototype development across the campus ecosystem.",
-        image: "",
-        status: "ACTIVE",
-        badge: "FACULTY NODE"
-      }
-    ],
+    faculty: [{
+      name: "Mr. Om Prakash Ram",
+      designation: "Faculty Incharge, Startup Cell",
+      org: "Government Engineering College, West Champaran",
+      description: "Guiding institutional innovation strategy, entrepreneurship mentorship, and student-led prototype development across the campus ecosystem.",
+      image: "",
+      status: "ACTIVE",
+      badge: "FACULTY NODE"
+    }],
     districtCoordinator: {
       name: "Mr. Kumar Yashraj",
       designation: "District Startup Coordinator",
@@ -126,40 +122,12 @@ const SCELL_DATA = {
       badge: "DISTRICT NODE"
     },
     studentRepresentatives: [
-      {
-        name: "Pratik Raj",
-        batch: "2K23",
-        role: "Student Representative",
-        image: "",
-        status: "ACTIVE",
-        badge: "STUDENT REPRESENTATIVE"
-      },
-      {
-        name: "Ananya Priya",
-        batch: "2K23",
-        role: "Student Representative",
-        image: "",
-        status: "ACTIVE",
-        badge: "STUDENT REPRESENTATIVE"
-      }
+      { name: "Pratik Raj", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" },
+      { name: "Ananya Priya", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" }
     ],
     leads: [
-      {
-        name: "Pratik Raj",
-        batch: "2K23",
-        role: "Student Representative",
-        image: "",
-        status: "ACTIVE",
-        badge: "STUDENT REPRESENTATIVE"
-      },
-      {
-        name: "Ananya Priya",
-        batch: "2K23",
-        role: "Student Representative",
-        image: "",
-        status: "ACTIVE",
-        badge: "STUDENT REPRESENTATIVE"
-      }
+      { name: "Pratik Raj", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" },
+      { name: "Ananya Priya", batch: "2K23", role: "Student Representative", image: "", status: "ACTIVE", badge: "STUDENT REPRESENTATIVE" }
     ],
     developedBy: {
       name: "Anurag Kumar",
@@ -186,7 +154,6 @@ function hydrateTeamDirectory() {
   try {
     const saved = JSON.parse(localStorage.getItem('scell_team_directory_v1') || 'null');
     if (!saved) return;
-
     if (saved.faculty) SCELL_DATA.team.faculty = saved.faculty;
     if (saved.districtCoordinator) SCELL_DATA.team.districtCoordinator = saved.districtCoordinator;
     if (saved.studentRepresentatives) SCELL_DATA.team.studentRepresentatives = saved.studentRepresentatives;
@@ -212,16 +179,75 @@ function saveTeamDirectory() {
   }
 }
 
-// Sync live data from Supabase PostgreSQL
+function getCurrentStudentSession() {
+  try {
+    const raw = sessionStorage.getItem('scell_student_session');
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveCurrentStudentSession(student) {
+  if (!student) return;
+  sessionStorage.setItem('scell_student_session', JSON.stringify(student));
+}
+
+async function ensureStorageBucket() {
+  if (!db) return false;
+  try {
+    const { error } = await db.storage.from(SCELL_STORAGE_BUCKET).list();
+    if (error && error.message && error.message.toLowerCase().includes('not found')) {
+      const { error: createError } = await db.storage.createBucket(SCELL_STORAGE_BUCKET, { public: true, allowedMimeTypes: ['image/*', 'application/pdf'], fileSizeLimit: '10MB' });
+      if (createError) console.warn('Storage bucket create warning:', createError.message);
+      return !createError;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Storage bucket check failed:', err);
+    return false;
+  }
+}
+
+async function uploadAssetToStorage(file, path) {
+  if (!db || !file) return null;
+  const bucket = SCELL_STORAGE_BUCKET;
+  const filePath = path || `${Date.now()}-${file.name}`;
+  const { data, error } = await db.storage.from(bucket).upload(filePath, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: file.type
+  });
+  if (error) {
+    console.error('Storage upload failed:', error);
+    return null;
+  }
+  const { data: publicUrlData } = db.storage.from(bucket).getPublicUrl(filePath);
+  return publicUrlData?.publicUrl || null;
+}
+
+async function dispatchStudentWebhook(payload, endpointName) {
+  const url = endpointName && endpointName.includes('welcome') ? 'https://example.com/scell-webhook/welcome' : 'https://example.com/scell-webhook/ticket';
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn(`${endpointName} webhook failed:`, error);
+    return false;
+  }
+}
+
 async function syncFromCloud() {
   if (!db) return;
 
   try {
-    const { data: eventsData, error: evErr } = await db
-      .from('events')
-      .select('*')
-      .order('created_at', { ascending: false });
+    await ensureStorageBucket();
 
+    const { data: eventsData, error: evErr } = await db.from('events').select('*').order('created_at', { ascending: false });
     if (!evErr && eventsData) {
       SCELL_DATA.events = eventsData.map(e => ({
         id: e.id,
@@ -233,25 +259,20 @@ async function syncFromCloud() {
         time: e.time || '10:00 AM IST',
         venue: e.venue || 'GECWC Campus',
         collaborator: e.collaborator || 'SCELL GECWC',
-        poster: e.poster_url || "https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=1200&auto=format&fit=crop",
-        rulebook: e.rulebook_url || "",
+        poster: e.poster_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=1200&auto=format&fit=crop',
+        rulebook: e.rulebook_url || '',
         registrationOpen: e.registration_open ?? true,
         seatsTotal: e.seats_total || 100,
         seatsFilled: e.seats_filled || 0,
         badge: e.badge || (e.status === 'UPCOMING' ? 'ACTIVE' : 'ARCHIVED'),
-        description: e.description || "Official Event organized by Startup Cell, GEC West Champaran.",
+        description: e.description || 'Official Event organized by Startup Cell, GEC West Champaran.',
         winners: e.winners || [],
         gallery: e.gallery_urls || []
       }));
-
       SCELL_DATA.stats.eventsCount = SCELL_DATA.events.length;
     }
 
-    const { data: regData, error: regErr } = await db
-      .from('registrations')
-      .select('*')
-      .order('created_at', { ascending: false });
-
+    const { data: regData, error: regErr } = await db.from('registrations').select('*').order('created_at', { ascending: false });
     if (!regErr && regData) {
       SCELL_DATA.registrations = regData.map(r => ({
         id: r.id,
@@ -262,10 +283,112 @@ async function syncFromCloud() {
         email: r.email,
         branch: r.branch,
         sem: r.sem,
-        status: "CONFIRMED"
+        status: 'CONFIRMED'
       }));
     }
   } catch (err) {
-    console.error("Cloud Sync Exception:", err);
+    console.error('Cloud Sync Exception:', err);
   }
+}
+
+async function lookupStudentByRoll(roll) {
+  if (!db || !roll) return null;
+  const normalized = String(roll).trim();
+  if (!normalized) return null;
+
+  const { data, error } = await db.from('students').select('*').eq('roll', normalized).maybeSingle();
+  if (error) {
+    console.warn('Student lookup failed:', error.message);
+    return null;
+  }
+  return data || null;
+}
+
+async function fetchStudentByIdentifier(identifier) {
+  if (!db || !identifier) return null;
+  const value = String(identifier).trim();
+  if (!value) return null;
+  const { data, error } = await db.from('students').select('*').or(`roll.eq.${value},email.eq.${value}`).maybeSingle();
+  if (error) {
+    console.warn('Student identifier lookup failed:', error.message);
+    return null;
+  }
+  return data || null;
+}
+
+async function registerEventInStore(payload) {
+  if (!db) throw new Error('Database connection is not configured.');
+  const { data, error } = await db.from('registrations').insert([payload]).select();
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+async function ensureUniqueRegistration(eventId, roll) {
+  if (!db) return false;
+  const { data, error } = await db.from('registrations').select('id').eq('event_id', eventId).eq('roll', roll).maybeSingle();
+  if (error) {
+    console.warn('Duplicate check failed:', error.message);
+    return false;
+  }
+  return !!data;
+}
+
+function generateRegistrationId() {
+  const stamp = Date.now().toString().slice(-6);
+  return `SCELL-${new Date().getFullYear()}-${stamp}`;
+}
+
+function generateDailyOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function createRegistrationPayload({ id, eventId, eventName, name, roll, email, branch, sem, year, batch, phone, qrData, status = 'confirmed' }) {
+  return {
+    id,
+    event_id: eventId,
+    event_name: eventName,
+    name,
+    roll,
+    email,
+    branch,
+    sem,
+    year,
+    batch,
+    phone,
+    qr_payload: JSON.stringify(qrData),
+    status
+  };
+}
+
+async function triggerOtpEmail(email, otp, studentName) {
+  const payload = {
+    to: email,
+    subject: 'SCELL GECWC - Email Verification OTP',
+    template: 'otp_verification',
+    otp,
+    studentName
+  };
+  return dispatchStudentWebhook(payload, 'welcome');
+}
+
+async function triggerWelcomeEmail(student) {
+  const payload = {
+    to: student.email,
+    subject: 'Welcome to SCELL GECWC',
+    template: 'welcome_cadre',
+    studentName: student.name,
+    roll: student.roll,
+    branch: student.branch
+  };
+  return dispatchStudentWebhook(payload, 'welcome');
+}
+
+async function triggerTicketEmail(registrationPayload) {
+  const payload = {
+    to: registrationPayload.email,
+    subject: `Your SCELL Event Pass - ${registrationPayload.event_name}`,
+    template: 'event_ticket',
+    ...registrationPayload
+  };
+  return dispatchStudentWebhook(payload, 'ticket');
 }

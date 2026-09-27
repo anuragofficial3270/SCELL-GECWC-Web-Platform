@@ -7,6 +7,9 @@
   <meta name="description" content="Official Innovation and Entrepreneurship Platform of Government Engineering College, West Champaran. Build. Innovate. Launch.">
   <meta name="theme-color" content="#030712">
 
+  <!-- Browser tab icon -->
+  <link rel="icon" type="image/png" href="https://drive.google.com/uc?export=view&id=1-k34c7sBUgQASCo0RFQez7I3LCcS2pw2">
+
   <!-- Open Graph -->
   <meta property="og:title" content="SCELL GECWC — Innovation & Incubation Lab">
   <meta property="og:description" content="Building an innovation and entrepreneurship ecosystem at GEC West Champaran, Bihar.">
@@ -72,6 +75,7 @@
 
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
@@ -314,6 +318,13 @@
               <h4 id="slip-event-name" class="font-bold font-editorial text-lg text-slate-900 dark:text-white">Drone Technology Workshop</h4>
             </div>
             <span class="px-2 py-1 rounded bg-brand-electric/10 text-brand-electric text-[10px] font-bold border border-brand-electric/20">VERIFIED PASS</span>
+          </div>
+
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <div class="text-[10px] uppercase tracking-widest text-slate-500">Verification QR</div>
+            <div id="reg-qr-wrap" class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white p-2 shadow-inner">
+              <canvas id="reg-qr-canvas" width="120" height="120"></canvas>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3 text-xs">

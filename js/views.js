@@ -44,6 +44,21 @@ function renderHomeView() {
           <span class="px-3 py-1 rounded bg-slate-200/50 dark:bg-slate-800/60 border border-slate-300/40 dark:border-slate-700/50">#BIHAR_STARTUP_POLICY</span>
           <span class="px-3 py-1 rounded bg-slate-200/50 dark:bg-slate-800/60 border border-slate-300/40 dark:border-slate-700/50">#PATENT_FILING</span>
         </div>
+
+        <div class="mt-12 grid gap-4 md:grid-cols-3">
+          <div class="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/50 p-5 shadow-lg shadow-brand-electric/5 backdrop-blur-sm">
+            <div class="font-mono text-[10px] uppercase tracking-[0.22em] text-brand-electric dark:text-brand-neon mb-2">01 // IDEATE</div>
+            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Student teams turn raw ideas into working prototypes with mentorship, labs, and project guidance.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/50 p-5 shadow-lg shadow-brand-electric/5 backdrop-blur-sm">
+            <div class="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-500 mb-2">02 // VALIDATE</div>
+            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">We support pilots, feedback loops, and problem-market fit so founders learn from real-world users.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/50 p-5 shadow-lg shadow-brand-electric/5 backdrop-blur-sm">
+            <div class="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-500 mb-2">03 // LAUNCH</div>
+            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">From campus experiments to startup-ready ventures, SCELL helps transform ambition into impact.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -444,6 +459,10 @@ function renderStartupsView() {
 
 /* SCELL ARENA VIEW */
 function renderArenaView() {
+  const student = getCurrentStudentSession();
+  const xp = student && student.xp ? student.xp : 0;
+  const todayLabel = new Date().toLocaleDateString('en-CA');
+
   return `
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-10 mb-10">
@@ -492,6 +511,19 @@ function renderArenaView() {
         </div>
 
         <div class="lg:col-span-4 space-y-6">
+          <div class="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark font-mono text-xs">
+            <h4 class="font-bold text-sm uppercase text-brand-electric dark:text-brand-neon mb-4">Daily Engineering Puzzle</h4>
+            <div class="rounded-2xl border border-dashed border-brand-electric/30 bg-brand-electric/5 p-4 mb-4">
+              <div class="text-[10px] text-brand-electric dark:text-brand-neon uppercase mb-2">Challenge // Logic Gate Path</div>
+              <div class="text-lg font-bold text-slate-900 dark:text-white">Optimize the circuit route</div>
+              <div class="text-[11px] text-slate-500 mt-2">Trace the correct signal path through the logic gate chain to unlock the daily XP reward.</div>
+            </div>
+            <button onclick="claimDailyArenaXp()" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-electric to-brand-neon text-white font-bold uppercase tracking-wider cursor-pointer">
+              Claim +50 XP · ${student ? 'Live' : 'Login first'}
+            </button>
+            <div class="mt-3 text-[10px] text-slate-500">Today: ${todayLabel} · Current student XP: ${xp}</div>
+          </div>
+
           <div class="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark font-mono text-xs">
             <h4 class="font-bold text-sm uppercase text-brand-electric dark:text-brand-neon mb-4">Official Honor Badges</h4>
             <div class="space-y-4">
@@ -734,7 +766,6 @@ function renderAboutView() {
 function renderAdminView() {
   const isAuthenticated = sessionStorage.getItem('scell_admin_auth') === 'true';
 
-  // AGAR LOGIN NAHI HAI TOH YEH SCREEN DIKHEGI
   if (!isAuthenticated) {
     return `
       <div class="min-h-[80vh] flex items-center justify-center px-4 py-16">
@@ -742,42 +773,33 @@ function renderAdminView() {
           <div class="w-12 h-12 rounded-xl bg-brand-electric/10 text-brand-electric dark:text-brand-neon flex items-center justify-center mb-6 mx-auto">
             <i data-lucide="shield-check" class="w-6 h-6"></i>
           </div>
-
           <div class="text-center mb-6">
             <span class="text-[10px] font-mono uppercase tracking-widest text-brand-electric dark:text-brand-neon font-bold">// ACCESS RESTRICTED</span>
             <h2 class="text-2xl font-bold font-editorial text-slate-900 dark:text-white mt-1">Admin Command Login</h2>
             <p class="text-xs text-slate-500 font-mono mt-1">Official GEC West Champaran SCELL Council Gateway</p>
           </div>
-
           <form onsubmit="handleAdminLogin(event)" class="space-y-4 font-mono text-xs">
             <div>
               <label class="block text-slate-400 mb-1">Admin Identity ID</label>
               <input type="text" id="admin-user" required placeholder="admin@gecwc" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric text-slate-900 dark:text-white">
             </div>
-
             <div>
               <label class="block text-slate-400 mb-1">Security Key / Password</label>
               <input type="password" id="admin-pass" required placeholder="••••••••••••" class="w-full px-3.5 py-2.5 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric text-slate-900 dark:text-white">
             </div>
-
             <div id="admin-login-error" class="hidden p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] text-center"></div>
-
             <button type="submit" class="w-full py-3 rounded-xl bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider uppercase transition cursor-pointer shadow-lg shadow-brand-electric/30">
               AUTHENTICATE GATEWAY
             </button>
           </form>
-
           <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
-            <button onclick="navigate('home')" class="font-mono text-xs text-slate-500 hover:text-slate-400 cursor-pointer">
-              ← Return to Main Portal
-            </button>
+            <button onclick="navigate('home')" class="font-mono text-xs text-slate-500 hover:text-slate-400 cursor-pointer">← Return to Main Portal</button>
           </div>
         </div>
       </div>
     `;
   }
 
-  // AGAR AUTHENTICATED HAI TOH ORIGINAL DASHBOARD DIKHEGA
   return `
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-8 mb-8">
@@ -800,7 +822,13 @@ function renderAdminView() {
         </div>
       </div>
 
-      <!-- CREATE NEW EVENT FORM -->
+      <div class="mb-8 flex flex-wrap gap-2 font-mono text-xs">
+        <button class="px-3 py-2 rounded-xl bg-brand-electric text-white border border-brand-electric">Missions</button>
+        <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">Assets</button>
+        <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">Team</button>
+        <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">Content</button>
+      </div>
+
       <div class="p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark mb-12 shadow-xl">
         <h3 class="text-xl font-bold font-editorial mb-4">Deploy New Event to Website</h3>
         <form onsubmit="handleCreateEventSubmit(event)" class="space-y-4 font-mono text-xs">
@@ -819,7 +847,6 @@ function renderAdminView() {
               </select>
             </div>
           </div>
-
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block mb-1 text-slate-400">Date Range *</label>
@@ -834,55 +861,49 @@ function renderAdminView() {
               <input type="text" id="ev-add-venue" placeholder="Auditorium, GECWC" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
             </div>
           </div>
-
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block mb-1 text-slate-400">Poster Image URL *</label>
-              <input type="url" id="ev-add-poster" required placeholder="https://..." class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
+              <label class="block mb-1 text-slate-400">Poster Image URL</label>
+              <input type="url" id="ev-add-poster" placeholder="https://... or Drive URL" class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
             </div>
             <div>
               <label class="block mb-1 text-slate-400">Rulebook PDF Link (Drive/Cloud)</label>
               <input type="url" id="ev-add-rulebook" placeholder="https://drive.google.com/..." class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none">
             </div>
           </div>
-
           <div>
             <label class="block mb-1 text-slate-400">Event Description</label>
             <textarea id="ev-add-desc" rows="2" placeholder="Brief rules & description..." class="w-full px-3 py-2 rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none"></textarea>
           </div>
-
-          <button type="submit" class="px-6 py-2.5 rounded-lg bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider cursor-pointer">
-            PUBLISH EVENT LIVE
-          </button>
+          <div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-900/30">
+            <div class="font-bold mb-2">Asset Delivery Mode</div>
+            <div class="flex flex-wrap gap-3 font-mono text-[10px]">
+              <label class="flex items-center gap-2"><input type="radio" name="asset-mode" checked> Direct Upload</label>
+              <label class="flex items-center gap-2"><input type="radio" name="asset-mode"> External URL</label>
+            </div>
+          </div>
+          <button type="submit" class="px-6 py-2.5 rounded-lg bg-brand-electric hover:bg-blue-600 text-white font-bold tracking-wider cursor-pointer">PUBLISH EVENT LIVE</button>
         </form>
       </div>
 
-      <!-- ACTIVE EVENTS CONTROL LIST -->
       <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark mb-12 shadow-xl font-mono text-xs">
         <h3 class="text-xl font-bold font-editorial mb-4">Manage Active & Past Events</h3>
         <div class="space-y-4">
-          ${SCELL_DATA.events.length === 0 ? `
-            <p class="text-slate-400">No events currently deployed.</p>
-          ` : SCELL_DATA.events.map(ev => `
+          ${SCELL_DATA.events.length === 0 ? '<p class="text-slate-400">No events currently deployed.</p>' : SCELL_DATA.events.map(ev => `
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 gap-4">
               <div>
                 <span class="font-bold text-sm text-slate-900 dark:text-white">${ev.title}</span>
                 <p class="text-slate-400 text-[11px]">${ev.date} · Status: <span class="text-brand-neon uppercase">${ev.status}</span></p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <button onclick="toggleEventRegistration('${ev.id}',${!ev.registrationOpen})" class="px-3 py-1.5 rounded border ${ev.registrationOpen ? 'border-red-500/40 text-red-400 hover:bg-red-500/10' : 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}">
-                  ${ev.registrationOpen ? 'Close Registration' : 'Open Registration'}
-                </button>
-                <button onclick="markEventCompleted('${ev.id}')" class="px-3 py-1.5 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
-                  Mark Finished & Add Winners
-                </button>
+                <button onclick="toggleEventRegistration('${ev.id}',${!ev.registrationOpen})" class="px-3 py-1.5 rounded border ${ev.registrationOpen ? 'border-red-500/40 text-red-400 hover:bg-red-500/10' : 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}">${ev.registrationOpen ? 'Close Registration' : 'Open Registration'}</button>
+                <button onclick="markEventCompleted('${ev.id}')" class="px-3 py-1.5 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10">Mark Finished & Add Winners</button>
               </div>
             </div>
           `).join('')}
         </div>
       </div>
 
-      <!-- Verified Student Registrations Table -->
       <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark overflow-hidden shadow-xl">
         <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
           <h3 class="font-editorial font-bold text-lg">Verified Student Registrations</h3>
@@ -891,13 +912,7 @@ function renderAdminView() {
         <div class="overflow-x-auto">
           <table class="w-full text-left font-mono text-xs">
             <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <tr>
-                <th class="p-4">SLIP ID</th>
-                <th class="p-4">CANDIDATE</th>
-                <th class="p-4">ROLL NO</th>
-                <th class="p-4">EVENT</th>
-                <th class="p-4">BRANCH & SEM</th>
-              </tr>
+              <tr><th class="p-4">SLIP ID</th><th class="p-4">CANDIDATE</th><th class="p-4">ROLL NO</th><th class="p-4">EVENT</th><th class="p-4">BRANCH & SEM</th></tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
               ${SCELL_DATA.registrations.map(r => `
@@ -911,43 +926,6 @@ function renderAdminView() {
               `).join('')}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <div class="mt-12 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl overflow-hidden">
-        <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
-          <div>
-            <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-brand-electric dark:text-brand-neon">TEAM DIRECTORY // MANAGEMENT</div>
-            <h3 class="text-2xl font-bold font-editorial mt-1">Official People Registry</h3>
-          </div>
-          <span class="text-[10px] font-mono text-slate-400 uppercase tracking-[0.2em]">ADMIN MODE</span>
-        </div>
-
-        <div class="p-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
-          ${[
-            { key: 'faculty', label: 'FACULTY INCHARGE', person: SCELL_DATA.team.faculty[0], imageKey: 'faculty', details: `${SCELL_DATA.team.faculty[0].designation}<br>${SCELL_DATA.team.faculty[0].org}` },
-            { key: 'districtCoordinator', label: 'DISTRICT STARTUP COORDINATOR', person: SCELL_DATA.team.districtCoordinator, imageKey: 'districtCoordinator', details: `${SCELL_DATA.team.districtCoordinator.designation}<br>${SCELL_DATA.team.districtCoordinator.org}` },
-            { key: 'pratik', label: 'STUDENT REPRESENTATIVE', person: SCELL_DATA.team.studentRepresentatives[0], imageKey: 'pratik', details: `Pratik Raj<br>Batch: 2K23` },
-            { key: 'ananya', label: 'STUDENT REPRESENTATIVE', person: SCELL_DATA.team.studentRepresentatives[1], imageKey: 'ananya', details: `Ananya Priya<br>Batch: 2K23` },
-            { key: 'anurag', label: 'DEVELOPED BY', person: SCELL_DATA.team.developedBy, imageKey: 'anurag', details: `${SCELL_DATA.team.developedBy.branch}<br>${SCELL_DATA.team.developedBy.batch}` }
-          ].map(item => `
-            <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
-              <div class="flex items-start gap-4">
-                <img src="${item.person && item.person.image ? item.person.image : getTeamPhotoDefault(item.imageKey)}" alt="${item.person.name}" class="w-20 h-20 rounded-2xl object-cover border border-slate-200 dark:border-slate-700" />
-                <div class="flex-1 min-w-0">
-                  <div class="font-mono text-[10px] uppercase tracking-[0.22em] text-brand-electric dark:text-brand-neon">${item.label}</div>
-                  <h4 class="mt-2 font-bold text-lg font-editorial text-slate-900 dark:text-white">${item.person.name}</h4>
-                  <div class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono leading-relaxed">${item.details}</div>
-                </div>
-              </div>
-              <div class="mt-4 flex flex-wrap gap-2">
-                <input id="team-photo-input-${item.key}" type="file" accept="image/*" class="hidden" onchange="handleTeamPhotoUpload(event, '${item.key}')" />
-                <label for="team-photo-input-${item.key}" class="px-3 py-2 rounded-lg bg-brand-electric hover:bg-blue-600 text-white text-[10px] font-mono font-bold uppercase cursor-pointer">Upload Photo</label>
-                <button type="button" onclick="document.getElementById('team-photo-input-${item.key}').click()" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono font-bold uppercase hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">Replace</button>
-                <button type="button" onclick="removeTeamPhoto('${item.key}')" class="px-3 py-2 rounded-lg border border-red-500/30 text-red-400 text-[10px] font-mono font-bold uppercase hover:bg-red-500/10 cursor-pointer">Remove</button>
-              </div>
-            </div>
-          `).join('')}
         </div>
       </div>
     </div>

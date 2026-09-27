@@ -1,6 +1,12 @@
 let currentRoute = 'home';
 let currentEventFilter = 'ALL';
 let currentProjectFilter = 'ALL';
+const SCELL_APP_STATE = {
+  rollLookupTimer: null,
+  lastAutoFillStudent: null,
+  pendingOtp: null,
+  pendingRole: null
+};
 
 async function initApp() {
   if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
@@ -131,6 +137,68 @@ function setProjectFilter(tag) {
 }
 
 /* Modal Openers & Closers */
+function resetRegistrationForm() {
+  const fields = ['reg-name', 'reg-roll', 'reg-email', 'reg-branch', 'reg-sem'];
+  fields.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.disabled = false;
+      element.value = '';
+    }
+  });
+  SCELL_APP_STATE.lastAutoFillStudent = null;
+  const errorBox = document.getElementById('reg-error');
+  if (errorBox) {
+    errorBox.classList.add('hidden');
+    errorBox.innerText = '';
+  }
+}
+
+function bindRegistrationRollLookup() {
+  const rollInput = document.getElementById('reg-roll');
+  if (!rollInput || rollInput.dataset.bound === 'true') return;
+  rollInput.dataset.bound = 'true';
+  rollInput.addEventListener('input', () => {
+    const value = rollInput.value.trim();
+    if (!value || value.length < 3) {
+      if (SCELL_APP_STATE.rollLookupTimer) clearTimeout(SCELL_APP_STATE.rollLookupTimer);
+      return;
+    }
+    if (SCELL_APP_STATE.rollLookupTimer) clearTimeout(SCELL_APP_STATE.rollLookupTimer);
+    SCELL_APP_STATE.rollLookupTimer = setTimeout(async () => {
+      const student = await lookupStudentByRoll(value);
+      if (student) {
+        SCELL_APP_STATE.lastAutoFillStudent = student;
+        const fields = {
+          regName: document.getElementById('reg-name'),
+          regEmail: document.getElementById('reg-email'),
+          regBranch: document.getElementById('reg-branch'),
+          regSem: document.getElementById('reg-sem')
+        };
+        if (fields.regName) {
+          fields.regName.value = student.name || '';
+          fields.regName.disabled = true;
+        }
+        if (fields.regEmail) {
+          fields.regEmail.value = student.email || '';
+          fields.regEmail.disabled = true;
+        }
+        if (fields.regBranch) {
+          fields.regBranch.value = student.branch || fields.regBranch.value;
+          fields.regBranch.disabled = true;
+        }
+        if (fields.regSem) {
+          fields.regSem.value = student.sem || fields.regSem.value;
+          fields.regSem.disabled = true;
+        }
+        showToast('Cadre record verified and prefilled.');
+      } else {
+        alert('Cadre record not found. Please register via Student Portal first.');
+      }
+    }, 400);
+  });
+}
+
 function openRegistrationModal(eventId) {
   const event = SCELL_DATA.events.find(e => e.id === eventId) || SCELL_DATA.events[0];
   if (!event) return;
@@ -140,6 +208,8 @@ function openRegistrationModal(eventId) {
   document.getElementById('reg-success-slip').classList.add('hidden');
   document.getElementById('reg-error').classList.add('hidden');
   document.getElementById('reg-modal').classList.remove('hidden');
+  resetRegistrationForm();
+  bindRegistrationRollLookup();
 }
 
 function closeRegModal() {
@@ -153,6 +223,23 @@ function toggleTeamField(val) {
 }
 
 /* Register Candidate Directly to Cloud */
+async function generateQrPass(regId, roll, eventId, eventName) {
+  const canvas = document.getElementById('reg-qr-canvas');
+  const payload = {
+    reg_id: regId,
+    roll,
+    event_id: eventId,
+    event_name: eventName,
+    timestamp: new Date().toISOString()
+  };
+  if (canvas && window.QRCode) {
+    window.QRCode.toCanvas(canvas, JSON.stringify(payload), { width: 220, margin: 1 }, (error) => {
+      if (error) console.error('QR generation failed:', error);
+    });
+  }
+  return payload;
+}
+
 async function handleRegistrationSubmit(e) {
   e.preventDefault();
   const eventId = document.getElementById('reg-event-id').value;
@@ -162,49 +249,75 @@ async function handleRegistrationSubmit(e) {
   const email = document.getElementById('reg-email').value.trim();
   const branch = document.getElementById('reg-branch').value;
   const sem = document.getElementById('reg-sem').value;
+  const errBox = document.getElementById('reg-error');
 
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  const regId = `SCELL-2026-${rand}`;
-
-  if (!db) {
-    alert("Database connection is not configured.");
-    return;
-  }
-
-  const { error } = await db.from('registrations').insert([{
-    id: regId,
-    event_id: eventId,
-    event_name: event.title,
-    name,
-    roll,
-    email,
-    branch,
-    sem
-  }]);
-
-  if (error) {
-    const errBox = document.getElementById('reg-error');
-    errBox.innerText = "Error: " + error.message;
+  if (!eventId || !event) {
+    errBox.innerText = 'Please select a valid event.';
     errBox.classList.remove('hidden');
     return;
   }
 
-  // Update seats on event table
-  await db.from('events').update({ seats_filled: (event.seatsFilled || 0) + 1 }).eq('id', eventId);
+  if (!name || !roll || !email) {
+    errBox.innerText = 'Please fill in all required candidate details.';
+    errBox.classList.remove('hidden');
+    return;
+  }
 
-  // Show Slip
-  document.getElementById('slip-event-name').innerText = event.title;
-  document.getElementById('slip-name').innerText = name;
-  document.getElementById('slip-id').innerText = regId;
-  document.getElementById('slip-roll').innerText = roll;
-  document.getElementById('slip-dept').innerText = `${branch} · ${sem} Sem`;
+  if (db) {
+    const duplicateExists = await ensureUniqueRegistration(eventId, roll);
+    if (duplicateExists) {
+      errBox.innerText = 'Candidate already registered for this mission.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+  }
 
-  document.getElementById('reg-form-container').classList.add('hidden');
-  document.getElementById('reg-success-slip').classList.remove('hidden');
+  const regId = generateRegistrationId();
+  const payload = createRegistrationPayload({
+    id: regId,
+    eventId,
+    eventName: event.title,
+    name,
+    roll,
+    email,
+    branch,
+    sem,
+    year: 'N/A',
+    batch: 'N/A',
+    phone: 'N/A',
+    qrData: { reg_id: regId, roll, event_id: eventId, timestamp: new Date().toISOString() },
+    status: 'confirmed'
+  });
 
-  await syncFromCloud();
-  showToast('Pass Created: ' + regId);
-  lucide.createIcons();
+  try {
+    if (!db) throw new Error('Database connection is not configured.');
+    const inserted = await registerEventInStore(payload);
+    const qrPayload = await generateQrPass(regId, roll, eventId, event.title);
+
+    await db.from('events').update({ seats_filled: (event.seatsFilled || 0) + 1 }).eq('id', eventId);
+    await triggerTicketEmail({ ...payload, event_name: event.title, qr_payload: JSON.stringify(qrPayload) });
+
+    document.getElementById('slip-event-name').innerText = event.title;
+    document.getElementById('slip-name').innerText = name;
+    document.getElementById('slip-id').innerText = regId;
+    document.getElementById('slip-roll').innerText = roll;
+    document.getElementById('slip-dept').innerText = `${branch} · ${sem} Sem`;
+
+    const qrWrap = document.getElementById('reg-qr-wrap');
+    if (qrWrap) {
+      qrWrap.innerHTML = '<canvas id="reg-qr-canvas" width="180" height="180"></canvas>';
+      await generateQrPass(regId, roll, eventId, event.title);
+    }
+
+    document.getElementById('reg-form-container').classList.add('hidden');
+    document.getElementById('reg-success-slip').classList.remove('hidden');
+    await syncFromCloud();
+    showToast('Pass Created: ' + regId);
+    lucide.createIcons();
+  } catch (error) {
+    errBox.innerText = 'Registration failed: ' + (error?.message || 'Please try again.');
+    errBox.classList.remove('hidden');
+  }
 }
 
 /* Event Creation via Admin Panel */
@@ -376,7 +489,7 @@ async function handleStudentRegister(e) {
 
   if (!uploadedStudentPhotoBase64) {
     if (errBox) {
-      errBox.innerText = "Please upload a passport size photo.";
+      errBox.innerText = 'Please upload a passport size photo.';
       errBox.classList.remove('hidden');
     }
     return;
@@ -384,10 +497,30 @@ async function handleStudentRegister(e) {
 
   if (!db) {
     if (errBox) {
-      errBox.innerText = "Database connection is not configured.";
+      errBox.innerText = 'Database connection is not configured.';
       errBox.classList.remove('hidden');
     }
     return;
+  }
+
+  const otp = generateDailyOtp();
+  const otpVerified = window.prompt('Enter the 6-digit OTP sent to your institutional email:');
+  const expectedOtp = SCELL_APP_STATE.pendingOtp?.otp || otp;
+
+  if (!otpVerified || otpVerified.trim() !== expectedOtp) {
+    const sent = await triggerOtpEmail(email, otp, name);
+    SCELL_APP_STATE.pendingOtp = { email, otp, expiresAt: Date.now() + 300000 };
+    if (sent) {
+      showToast('OTP sent to your institutional email.');
+    }
+    const promptResult = window.prompt('Enter the 6-digit OTP sent to your institutional email to continue.');
+    if (!promptResult || promptResult.trim() !== otp) {
+      if (errBox) {
+        errBox.innerText = 'OTP verification failed. Please retry your registration.';
+        errBox.classList.remove('hidden');
+      }
+      return;
+    }
   }
 
   const { data, error } = await db.from('students').insert([{
@@ -406,14 +539,15 @@ async function handleStudentRegister(e) {
 
   if (error) {
     if (errBox) {
-      errBox.innerText = "Registration Error: " + error.message;
+      errBox.innerText = 'Registration Error: ' + error.message;
       errBox.classList.remove('hidden');
     }
     return;
   }
 
   const student = data[0];
-  sessionStorage.setItem('scell_student_session', JSON.stringify(student));
+  saveCurrentStudentSession(student);
+  await triggerWelcomeEmail(student);
   closeAuthModal();
   updateAuthNavbar();
   showToast(`Welcome to SCELL GECWC, ${name}!`);
@@ -427,7 +561,7 @@ async function handleStudentLogin(e) {
 
   if (!db) {
     if (errBox) {
-      errBox.innerText = "Database connection is not configured.";
+      errBox.innerText = 'Database connection is not configured.';
       errBox.classList.remove('hidden');
     }
     return;
@@ -442,13 +576,13 @@ async function handleStudentLogin(e) {
 
   if (error || !data) {
     if (errBox) {
-      errBox.innerText = "Invalid Roll No / Email or Password.";
+      errBox.innerText = 'Invalid Roll No / Email or Password.';
       errBox.classList.remove('hidden');
     }
     return;
   }
 
-  sessionStorage.setItem('scell_student_session', JSON.stringify(data));
+  saveCurrentStudentSession(data);
   closeAuthModal();
   updateAuthNavbar();
   showToast(`Welcome back, ${data.name}!`);
@@ -564,6 +698,40 @@ function showToast(msg) {
   setTimeout(() => {
     toast.classList.add('translate-y-24', 'opacity-0');
   }, 3500);
+}
+
+async function claimDailyArenaXp() {
+  const student = getCurrentStudentSession();
+  if (!student) {
+    showToast('Please log in first to claim Arena XP.');
+    openAuthModal('login');
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const claimKey = `scell_daily_game_${student.roll}_${today}`;
+
+  if (sessionStorage.getItem(claimKey) === 'claimed') {
+    showToast('Daily mission already claimed for today.');
+    return;
+  }
+
+  const xpReward = 50;
+  if (db) {
+    try {
+      const { error } = await db.from('daily_game_logs').insert([{ student_roll: student.roll, date_claimed: today }]);
+      if (error && !error.message.includes('duplicate')) console.warn('Daily log insert warning:', error.message);
+    } catch (err) {
+      console.warn('Daily claim log failed:', err);
+    }
+  }
+
+  const nextXp = Number(student.xp || 0) + xpReward;
+  student.xp = nextXp;
+  saveCurrentStudentSession(student);
+  sessionStorage.setItem(claimKey, 'claimed');
+  showToast(`Daily challenge cleared. +${xpReward} XP awarded.`);
+  renderRoute('arena');
 }
 
 function initCountUps() {
