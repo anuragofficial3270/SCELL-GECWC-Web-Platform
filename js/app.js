@@ -1166,6 +1166,7 @@ function normalizeTeamImageUrl(value) {
   const fallback = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop';
   if (!value || !String(value).trim()) return fallback;
   const cleaned = String(value).trim();
+  if (cleaned.startsWith('data:image/')) return cleaned;
   try {
     const parsed = new URL(cleaned);
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return cleaned;
@@ -1173,6 +1174,32 @@ function normalizeTeamImageUrl(value) {
     return fallback;
   }
   return fallback;
+}
+
+function handleTeamPhotoUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  const hiddenInput = document.getElementById('team-photo-url');
+  const preview = document.getElementById('team-photo-preview');
+  if (!file) {
+    if (hiddenInput) hiddenInput.value = '';
+    if (preview) preview.innerHTML = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = String(reader.result || '');
+    if (hiddenInput) hiddenInput.value = dataUrl;
+    if (preview) {
+      preview.innerHTML = `
+        <div class="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-2">
+          <img src="${dataUrl}" class="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+          <span class="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500">Photo Selected</span>
+        </div>
+      `;
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 function escapeTeamAttribute(value) {
@@ -1197,7 +1224,7 @@ function normalizeTeamCategory(category) {
 }
 
 function resetTeamForm() {
-  const ids = ['team-name', 'team-role', 'team-category', 'team-photo', 'team-phone', 'team-whatsapp', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-website', 'team-order', 'team-status'];
+  const ids = ['team-name', 'team-role', 'team-category', 'team-phone', 'team-whatsapp', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-website', 'team-order', 'team-status'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1206,6 +1233,16 @@ function resetTeamForm() {
     else if (id === 'team-order') el.value = '1';
     else el.value = '';
   });
+
+  const photoInput = document.getElementById('team-photo');
+  if (photoInput) photoInput.value = '';
+
+  const hiddenPhoto = document.getElementById('team-photo-url');
+  if (hiddenPhoto) hiddenPhoto.value = '';
+
+  const preview = document.getElementById('team-photo-preview');
+  if (preview) preview.innerHTML = '';
+
   SCELL_ADMIN_STATE.editingTeamMemberId = null;
 }
 
@@ -1244,7 +1281,6 @@ function prefillTeamMember(name, category = 'Student Representatives') {
     'team-name': member.name || '',
     'team-role': member.role || member.designation || '',
     'team-category': normalizedCategory,
-    'team-photo': normalizeTeamImageUrl(member.image),
     'team-phone': member.phone || '',
     'team-whatsapp': member.whatsapp || '',
     'team-department': member.department || member.org || '',
@@ -1255,6 +1291,20 @@ function prefillTeamMember(name, category = 'Student Representatives') {
     'team-order': member.order || 1,
     'team-status': member.status || 'Active'
   };
+  const photoInput = document.getElementById('team-photo');
+  const hiddenPhoto = document.getElementById('team-photo-url');
+  const preview = document.getElementById('team-photo-preview');
+  if (hiddenPhoto) hiddenPhoto.value = member.image || '';
+  if (preview) {
+    const image = member.image || '';
+    preview.innerHTML = image ? `
+      <div class="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-2">
+        <img src="${normalizeTeamImageUrl(image)}" class="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+        <span class="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500">Current Photo</span>
+      </div>
+    ` : '';
+  }
+  if (photoInput) photoInput.value = '';
   Object.entries(ids).forEach(([key, value]) => {
     const el = document.getElementById(key);
     if (el) el.value = value;
@@ -1265,13 +1315,14 @@ function prefillTeamMember(name, category = 'Student Representatives') {
 function handleSaveTeamMember(e) {
   e.preventDefault();
   const category = normalizeTeamCategory(document.getElementById('team-category').value);
+  const uploadedImage = document.getElementById('team-photo-url')?.value || document.getElementById('team-photo')?.value || '';
   const member = {
     name: document.getElementById('team-name').value.trim(),
     role: document.getElementById('team-role').value.trim(),
     designation: document.getElementById('team-role').value.trim(),
     category,
     group: category,
-    image: normalizeTeamImageUrl(document.getElementById('team-photo').value),
+    image: normalizeTeamImageUrl(uploadedImage),
     phone: document.getElementById('team-phone').value.trim(),
     whatsapp: document.getElementById('team-whatsapp').value.trim(),
     department: document.getElementById('team-department').value.trim(),
