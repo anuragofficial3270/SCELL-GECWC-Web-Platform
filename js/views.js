@@ -1174,8 +1174,16 @@ function renderAdminView() {
             </select>
           </div>
           <div>
-            <label class="block mb-1 text-slate-500 dark:text-slate-300">Photo URL</label>
-            <input id="team-photo" type="url" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Profile Photo URL</label>
+            <input id="team-photo" type="url" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric" placeholder="https://images.unsplash.com/...">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Mobile Number</label>
+            <input id="team-phone" type="tel" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric" placeholder="+91 98765 43210">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">WhatsApp / Contact Link</label>
+            <input id="team-whatsapp" type="url" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric" placeholder="https://wa.me/919876543210">
           </div>
           <div>
             <label class="block mb-1 text-slate-500 dark:text-slate-300">Department / Organisation</label>
@@ -1192,6 +1200,10 @@ function renderAdminView() {
           <div>
             <label class="block mb-1 text-slate-500 dark:text-slate-300">Email</label>
             <input id="team-email" type="email" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Website / Portfolio</label>
+            <input id="team-website" type="url" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric" placeholder="https://your-portfolio.com">
           </div>
           <div>
             <label class="block mb-1 text-slate-500 dark:text-slate-300">Display Order</label>
@@ -1230,6 +1242,12 @@ function renderAdminView() {
                       <div>
                         <div class="font-bold">${member.name || 'To be updated'}</div>
                         <div class="text-[11px] text-slate-500 font-mono">${member.role || member.designation || group.title} · ${member.batch || member.org || 'Manual entry'}</div>
+                        <div class="mt-1 flex flex-wrap gap-2 text-[10px] text-slate-500 font-mono">
+                          ${member.phone ? `<a href="tel:${member.phone}" class="text-brand-electric dark:text-brand-neon">Call</a>` : ''}
+                          ${member.whatsapp ? `<a href="${member.whatsapp}" target="_blank" rel="noreferrer" class="text-emerald-500">WhatsApp</a>` : ''}
+                          ${member.email ? `<a href="mailto:${member.email}" class="text-brand-electric dark:text-brand-neon">Email</a>` : ''}
+                          ${member.linkedin ? `<a href="${member.linkedin}" target="_blank" rel="noreferrer" class="text-violet-500">LinkedIn</a>` : ''}
+                        </div>
                       </div>
                     </div>
                     <div class="flex gap-2">

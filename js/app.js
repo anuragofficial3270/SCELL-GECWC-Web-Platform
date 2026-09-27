@@ -1197,7 +1197,7 @@ function normalizeTeamCategory(category) {
 }
 
 function resetTeamForm() {
-  const ids = ['team-name', 'team-role', 'team-category', 'team-photo', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-order', 'team-status'];
+  const ids = ['team-name', 'team-role', 'team-category', 'team-photo', 'team-phone', 'team-whatsapp', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-website', 'team-order', 'team-status'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1245,10 +1245,13 @@ function prefillTeamMember(name, category = 'Student Representatives') {
     'team-role': member.role || member.designation || '',
     'team-category': normalizedCategory,
     'team-photo': normalizeTeamImageUrl(member.image),
+    'team-phone': member.phone || '',
+    'team-whatsapp': member.whatsapp || '',
     'team-department': member.department || member.org || '',
     'team-batch': member.batch || '',
     'team-linkedin': member.linkedin || '',
     'team-email': member.email || '',
+    'team-website': member.website || member.portfolio || '',
     'team-order': member.order || 1,
     'team-status': member.status || 'Active'
   };
@@ -1269,11 +1272,15 @@ function handleSaveTeamMember(e) {
     category,
     group: category,
     image: normalizeTeamImageUrl(document.getElementById('team-photo').value),
+    phone: document.getElementById('team-phone').value.trim(),
+    whatsapp: document.getElementById('team-whatsapp').value.trim(),
     department: document.getElementById('team-department').value.trim(),
     org: document.getElementById('team-department').value.trim(),
     batch: document.getElementById('team-batch').value.trim(),
     linkedin: document.getElementById('team-linkedin').value.trim(),
     email: document.getElementById('team-email').value.trim(),
+    website: document.getElementById('team-website').value.trim(),
+    portfolio: document.getElementById('team-website').value.trim(),
     order: Number(document.getElementById('team-order').value || 1),
     status: document.getElementById('team-status').value,
     badge: category.toUpperCase()
