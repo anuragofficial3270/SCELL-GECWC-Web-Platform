@@ -22,9 +22,12 @@ create table if not exists public.events (
   badge text,
   winners jsonb default '[]'::jsonb,
   gallery_urls jsonb default '[]'::jsonb,
+  custom_form jsonb default '{}'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table public.events add column if not exists custom_form jsonb default '{}'::jsonb;
 
 create table if not exists public.students (
   id uuid primary key default gen_random_uuid(),
@@ -57,6 +60,8 @@ create table if not exists public.registrations (
   batch text,
   phone text,
   qr_payload jsonb,
+  custom_answers jsonb default '{}'::jsonb,
+  custom_form jsonb default '{}'::jsonb,
   status text default 'confirmed',
   created_at timestamptz default now(),
   unique(event_id, roll)
@@ -66,6 +71,8 @@ alter table public.registrations add column if not exists year text;
 alter table public.registrations add column if not exists batch text;
 alter table public.registrations add column if not exists phone text;
 alter table public.registrations add column if not exists qr_payload jsonb;
+alter table public.registrations add column if not exists custom_answers jsonb default '{}'::jsonb;
+alter table public.registrations add column if not exists custom_form jsonb default '{}'::jsonb;
 alter table public.registrations add column if not exists status text default 'confirmed';
 
 create table if not exists public.team_members (

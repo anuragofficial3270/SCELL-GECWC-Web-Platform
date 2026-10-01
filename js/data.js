@@ -350,6 +350,7 @@ async function syncFromCloud() {
         seatsFilled: e.seats_filled || 0,
         badge: e.badge || (e.status === 'UPCOMING' ? 'ACTIVE' : 'ARCHIVED'),
         description: e.description || 'Official Event organized by Startup Cell, GEC West Champaran.',
+        customForm: e.custom_form || { heading: e.title, description: e.description || '', fields: [] },
         winners: e.winners || [],
         gallery: e.gallery_urls || []
       }));
@@ -367,7 +368,9 @@ async function syncFromCloud() {
         email: r.email,
         branch: r.branch,
         sem: r.sem,
-        status: 'CONFIRMED'
+        status: r.status || 'CONFIRMED',
+        customAnswers: r.custom_answers || {},
+        customForm: r.custom_form || {}
       }));
     }
   } catch (err) {
@@ -450,7 +453,7 @@ function generateDailyOtp() {
   return String(Math.floor(100000 + Math.random() * 900000)).padStart(6, '0');
 }
 
-function createRegistrationPayload({ id, eventId, eventName, name, roll, email, branch, sem, year, batch, phone, qrData, status = 'confirmed' }) {
+function createRegistrationPayload({ id, eventId, eventName, name, roll, email, branch, sem, year, batch, phone, qrData, status = 'confirmed', customAnswers = {}, customForm = {} }) {
   return {
     id,
     event_id: eventId,
@@ -464,7 +467,9 @@ function createRegistrationPayload({ id, eventId, eventName, name, roll, email, 
     batch,
     phone,
     qr_payload: JSON.stringify(qrData),
-    status
+    status,
+    custom_answers: customAnswers,
+    custom_form: customForm
   };
 }
 

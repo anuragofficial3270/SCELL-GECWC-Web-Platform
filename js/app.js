@@ -365,6 +365,195 @@ const SCELL_ADMIN_STATE = {
   contentSection: 'home'
 };
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getEventCustomForm(event) {
+  if (!event) return { heading: '', description: '', fields: [] };
+  const customForm = event.customForm || {};
+  return {
+    heading: customForm.heading || event.heading || event.title || '',
+    description: customForm.description || event.formDescription || event.description || '',
+    fields: Array.isArray(customForm.fields) ? customForm.fields : []
+  };
+}
+
+function createDefaultCustomQuestion() {
+  return {
+    id: `q_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
+    label: '',
+    type: 'short_text',
+    required: false,
+    placeholder: '',
+    helpText: '',
+    options: ''
+  };
+}
+
+function renderCustomQuestionEditor(question = createDefaultCustomQuestion(), index = 0) {
+  const options = Array.isArray(question.options) ? question.options.join('\n') : (question.options || '');
+  const selectedType = question.type || 'short_text';
+  const questionId = question.id || `q_${index}_${Date.now()}`;
+
+  return `
+    <div class="event-custom-question rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4" data-index="${index}" data-question-id="${escapeHtml(questionId)}">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-brand-electric dark:text-brand-neon">Question ${index + 1}</span>
+        <button type="button" onclick="removeCustomEventQuestion(${index})" class="px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 text-[10px] font-mono uppercase">Remove</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block mb-1 text-slate-500 dark:text-slate-300">Question Text</label>
+          <input type="text" data-field="label" value="${escapeHtml(question.label || '')}" placeholder="What is your team name?" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 outline-none focus:border-brand-electric">
+        </div>
+        <div>
+          <label class="block mb-1 text-slate-500 dark:text-slate-300">Answer Type</label>
+          <select data-field="type" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 outline-none focus:border-brand-electric">
+            <option value="short_text" ${selectedType === 'short_text' ? 'selected' : ''}>Short Text</option>
+            <option value="long_text" ${selectedType === 'long_text' ? 'selected' : ''}>Long Text</option>
+            <option value="number" ${selectedType === 'number' ? 'selected' : ''}>Number</option>
+            <option value="email" ${selectedType === 'email' ? 'selected' : ''}>Email</option>
+            <option value="phone" ${selectedType === 'phone' ? 'selected' : ''}>Phone</option>
+            <option value="date" ${selectedType === 'date' ? 'selected' : ''}>Date</option>
+            <option value="select" ${selectedType === 'select' ? 'selected' : ''}>Dropdown</option>
+            <option value="checkbox" ${selectedType === 'checkbox' ? 'selected' : ''}>Checkbox</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label class="block mb-1 text-slate-500 dark:text-slate-300">Placeholder / Helper</label>
+          <input type="text" data-field="placeholder" value="${escapeHtml(question.placeholder || '')}" placeholder="Optional placeholder" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 outline-none focus:border-brand-electric">
+        </div>
+        <div>
+          <label class="block mb-1 text-slate-500 dark:text-slate-300">Help Text</label>
+          <input type="text" data-field="helpText" value="${escapeHtml(question.helpText || '')}" placeholder="Optional guide text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 outline-none focus:border-brand-electric">
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="block mb-1 text-slate-500 dark:text-slate-300">Options (one per line or comma separated)</label>
+        <textarea data-field="options" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 outline-none focus:border-brand-electric">${escapeHtml(options)}</textarea>
+      </div>
+      <label class="mt-4 flex items-center gap-2 text-slate-500 dark:text-slate-300 font-mono text-[10px] uppercase tracking-[0.18em]">
+        <input type="checkbox" data-field="required" ${question.required ? 'checked' : ''}>
+        <span>Required</span>
+      </label>
+    </div>
+  `;
+}
+
+function renderCustomQuestionEditorList(fields = []) {
+  const list = document.getElementById('event-custom-question-list');
+  if (!list) return;
+  const normalized = Array.isArray(fields) && fields.length ? fields : [createDefaultCustomQuestion()];
+  list.innerHTML = normalized.map((field, index) => renderCustomQuestionEditor(field, index)).join('');
+}
+
+function addCustomEventQuestion() {
+  const list = document.getElementById('event-custom-question-list');
+  if (!list) return;
+  const current = serializeCustomFormFieldsFromAdmin();
+  current.push(createDefaultCustomQuestion());
+  renderCustomQuestionEditorList(current);
+}
+
+function removeCustomEventQuestion(index) {
+  const list = document.getElementById('event-custom-question-list');
+  if (!list) return;
+  const current = serializeCustomFormFieldsFromAdmin();
+  current.splice(index, 1);
+  if (!current.length) current.push(createDefaultCustomQuestion());
+  renderCustomQuestionEditorList(current);
+}
+
+function serializeCustomFormFieldsFromAdmin() {
+  const list = document.getElementById('event-custom-question-list');
+  if (!list) return [];
+
+  return Array.from(list.querySelectorAll('.event-custom-question')).map((card, index) => {
+    const label = (card.querySelector('[data-field="label"]')?.value || '').trim();
+    if (!label) return null;
+
+    const type = card.querySelector('[data-field="type"]')?.value || 'short_text';
+    const required = !!card.querySelector('[data-field="required"]')?.checked;
+    const placeholder = (card.querySelector('[data-field="placeholder"]')?.value || '').trim();
+    const helpText = (card.querySelector('[data-field="helpText"]')?.value || '').trim();
+    const rawOptions = card.querySelector('[data-field="options"]')?.value || '';
+    const options = String(rawOptions)
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return {
+      id: card.dataset.questionId || `q_${index}_${Date.now()}`,
+      label,
+      type,
+      required,
+      placeholder,
+      helpText,
+      options
+    };
+  }).filter(Boolean);
+}
+
+function renderCustomRegistrationFields(event) {
+  const form = getEventCustomForm(event);
+  if (!form.fields || !form.fields.length) return '';
+
+  return form.fields.map((field, index) => {
+    const questionId = `custom-${field.id || index}`;
+    const label = `${field.label || 'Custom Question'}${field.required ? ' *' : ''}`;
+    const commonClass = 'w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-sm focus:border-brand-electric focus:ring-1 focus:ring-brand-electric outline-none';
+    const required = field.required ? 'required' : '';
+    const options = Array.isArray(field.options) ? field.options : String(field.options || '').split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+
+    let inputMarkup = '';
+
+    if (field.type === 'long_text') {
+      inputMarkup = `<textarea data-custom-field="${questionId}" ${required} rows="3" placeholder="${escapeHtml(field.placeholder || '')}" class="${commonClass}"></textarea>`;
+    } else if (field.type === 'select') {
+      const selectOptions = options.length ? options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join('') : '<option value="">Select one</option>';
+      inputMarkup = `<select data-custom-field="${questionId}" ${required} class="${commonClass}">${selectOptions}</select>`;
+    } else if (field.type === 'checkbox') {
+      inputMarkup = `<label class="flex items-center gap-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 px-3 py-2.5 text-sm"><input type="checkbox" data-custom-field="${questionId}" ${required} class="h-4 w-4 rounded border-slate-300 text-brand-electric focus:ring-brand-electric"><span>${escapeHtml(field.label || 'Custom option')}</span></label>`;
+    } else if (field.type === 'date') {
+      inputMarkup = `<input type="date" data-custom-field="${questionId}" ${required} class="${commonClass}">`;
+    } else if (field.type === 'number') {
+      inputMarkup = `<input type="number" data-custom-field="${questionId}" ${required} placeholder="${escapeHtml(field.placeholder || '')}" class="${commonClass}">`;
+    } else if (field.type === 'email') {
+      inputMarkup = `<input type="email" data-custom-field="${questionId}" ${required} placeholder="${escapeHtml(field.placeholder || '')}" class="${commonClass}">`;
+    } else if (field.type === 'phone') {
+      inputMarkup = `<input type="tel" data-custom-field="${questionId}" ${required} placeholder="${escapeHtml(field.placeholder || '')}" class="${commonClass}">`;
+    } else {
+      inputMarkup = `<input type="text" data-custom-field="${questionId}" ${required} placeholder="${escapeHtml(field.placeholder || '')}" class="${commonClass}">`;
+    }
+
+    return `
+      <div class="space-y-1.5">
+        <label class="block text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mb-1">${escapeHtml(label)}</label>
+        ${inputMarkup}
+        ${field.helpText ? `<p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">${escapeHtml(field.helpText)}</p>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function collectRegistrationCustomAnswers() {
+  const entries = Array.from(document.querySelectorAll('[data-custom-field]'));
+  const answers = {};
+  entries.forEach((field) => {
+    const key = field.getAttribute('data-custom-field');
+    if (!key) return;
+    if (field.type === 'checkbox') {
+      answers[key] = field.checked ? 'Yes' : 'No';
+      return;
+    }
+    answers[key] = field.value;
+  });
+  return answers;
+}
+
 async function initApp() {
   if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
     document.documentElement.classList.remove('dark');
@@ -477,6 +666,9 @@ function renderRoute(route, param = null) {
       break;
     case 'admin':
       app.innerHTML = renderAdminView();
+      if (document.getElementById('event-custom-question-list')) {
+        renderCustomQuestionEditorList([createDefaultCustomQuestion()]);
+      }
       break;
     case 'dashboard':
       app.innerHTML = renderUserDashboard();
@@ -500,7 +692,7 @@ function setProjectFilter(tag) {
 
 /* Modal Openers & Closers */
 function resetRegistrationForm() {
-  const fields = ['reg-name', 'reg-roll', 'reg-email', 'reg-branch', 'reg-sem'];
+  const fields = ['reg-name', 'reg-roll', 'reg-email', 'reg-branch', 'reg-sem', 'reg-phone', 'reg-team-name', 'reg-notes', 'reg-mode'];
   fields.forEach((id) => {
     const element = document.getElementById(id);
     if (element) {
@@ -508,6 +700,8 @@ function resetRegistrationForm() {
       element.value = '';
     }
   });
+  const extraFields = document.getElementById('reg-extra-fields');
+  if (extraFields) extraFields.innerHTML = '';
   SCELL_APP_STATE.lastAutoFillStudent = null;
   const errorBox = document.getElementById('reg-error');
   if (errorBox) {
@@ -565,13 +759,22 @@ function openRegistrationModal(eventId) {
   const event = SCELL_DATA.events.find(e => e.id === eventId) || SCELL_DATA.events[0];
   if (!event) return;
   document.getElementById('reg-event-id').value = event.id;
-  document.getElementById('reg-event-title').innerText = 'Register: ' + event.title;
+  const formHeading = getEventCustomForm(event).heading || event.title || 'Register for Event';
+  document.getElementById('reg-event-title').innerText = formHeading;
   document.getElementById('reg-form-container').classList.remove('hidden');
   document.getElementById('reg-success-slip').classList.add('hidden');
   document.getElementById('reg-error').classList.add('hidden');
+  const extraFields = document.getElementById('reg-extra-fields');
+  if (extraFields) extraFields.innerHTML = renderCustomRegistrationFields(event);
+  const intro = document.getElementById('reg-form')?.querySelector('p') || null;
+  if (intro) {
+    intro.innerText = getEventCustomForm(event).description || 'Fill your verified institutional details. Your official registration slip will generate instantly.';
+  }
   document.getElementById('reg-modal').classList.remove('hidden');
   resetRegistrationForm();
   bindRegistrationRollLookup();
+  const currentForm = document.getElementById('reg-extra-fields');
+  if (currentForm) currentForm.innerHTML = renderCustomRegistrationFields(event);
 }
 
 function closeRegModal() {
@@ -611,6 +814,8 @@ async function handleRegistrationSubmit(e) {
   const email = document.getElementById('reg-email').value.trim();
   const branch = document.getElementById('reg-branch').value;
   const sem = document.getElementById('reg-sem').value;
+  const phone = document.getElementById('reg-phone').value.trim();
+  const customAnswers = collectRegistrationCustomAnswers();
   const errBox = document.getElementById('reg-error');
 
   if (!eventId || !event) {
@@ -646,9 +851,11 @@ async function handleRegistrationSubmit(e) {
     sem,
     year: 'N/A',
     batch: 'N/A',
-    phone: 'N/A',
+    phone: phone || 'N/A',
     qrData: { reg_id: regId, roll, event_id: eventId, timestamp: new Date().toISOString() },
-    status: 'confirmed'
+    status: 'confirmed',
+    customAnswers,
+    customForm: event.customForm || { fields: [] }
   });
 
   try {
@@ -722,9 +929,10 @@ function prefillEventEditor(eventId) {
   if (!event) return;
 
   SCELL_ADMIN_STATE.editingEventId = eventId;
+  const customForm = getEventCustomForm(event);
   const fields = {
     'ev-add-title': event.title || '',
-    'ev-add-category': event.category || 'WORKSHOP',
+    'ev-add-category': event.category || 'Workshop',
     'ev-add-start-date': event.startDate || '',
     'ev-add-end-date': event.endDate || '',
     'ev-add-start-time': event.startTime || '',
@@ -737,13 +945,15 @@ function prefillEventEditor(eventId) {
     'ev-add-full-desc': event.fullDescription || event.description || '',
     'ev-add-eligibility': event.eligibility || '',
     'ev-add-rules': event.rules || '',
+    'ev-add-form-heading': customForm.heading || event.title || '',
+    'ev-add-form-description': customForm.description || event.description || '',
     'ev-add-reg-open': event.registrationOpen ? 'open' : 'closed',
     'ev-add-reg-start': event.registrationStart || '',
     'ev-add-reg-deadline': event.registrationDeadline || '',
     'ev-add-max-participants': event.maxParticipants || 100,
     'ev-add-participation-type': event.participationType || 'Individual',
     'ev-add-max-team-size': event.maxTeamSize || 4,
-    'ev-add-status': event.status || 'UPCOMING'
+    'ev-add-status': event.status || 'Upcoming'
   };
 
   Object.entries(fields).forEach(([id, value]) => {
@@ -751,6 +961,7 @@ function prefillEventEditor(eventId) {
     if (el) el.value = value;
   });
 
+  renderCustomQuestionEditorList(customForm.fields || []);
   const saveBtn = document.getElementById('publish-event-btn');
   if (saveBtn) saveBtn.textContent = 'UPDATE EVENT';
 }
@@ -760,7 +971,7 @@ function resetEventEditor() {
   const ids = [
     'ev-add-title', 'ev-add-category', 'ev-add-start-date', 'ev-add-end-date', 'ev-add-start-time', 'ev-add-end-time',
     'ev-add-venue', 'ev-add-map-url', 'ev-add-poster', 'ev-add-rulebook', 'ev-add-short-desc', 'ev-add-full-desc',
-    'ev-add-eligibility', 'ev-add-rules', 'ev-add-reg-open', 'ev-add-reg-start', 'ev-add-reg-deadline', 'ev-add-max-participants',
+    'ev-add-eligibility', 'ev-add-rules', 'ev-add-form-heading', 'ev-add-form-description', 'ev-add-reg-open', 'ev-add-reg-start', 'ev-add-reg-deadline', 'ev-add-max-participants',
     'ev-add-participation-type', 'ev-add-max-team-size', 'ev-add-status'
   ];
   ids.forEach(id => {
@@ -770,6 +981,7 @@ function resetEventEditor() {
       else el.value = '';
     }
   });
+  renderCustomQuestionEditorList([createDefaultCustomQuestion()]);
   const saveBtn = document.getElementById('publish-event-btn');
   if (saveBtn) saveBtn.textContent = 'PUBLISH EVENT LIVE';
 }
@@ -777,7 +989,7 @@ function resetEventEditor() {
 async function handleCreateEventSubmit(e) {
   e.preventDefault();
   const title = document.getElementById('ev-add-title')?.value.trim();
-  const category = document.getElementById('ev-add-category')?.value || 'WORKSHOP';
+  const category = document.getElementById('ev-add-category')?.value || 'Workshop';
   const startDate = document.getElementById('ev-add-start-date')?.value || '';
   const endDate = document.getElementById('ev-add-end-date')?.value || '';
   const startTime = document.getElementById('ev-add-start-time')?.value || '';
@@ -790,13 +1002,16 @@ async function handleCreateEventSubmit(e) {
   const fullDescription = document.getElementById('ev-add-full-desc')?.value.trim();
   const eligibility = document.getElementById('ev-add-eligibility')?.value.trim();
   const rules = document.getElementById('ev-add-rules')?.value.trim();
+  const formHeading = document.getElementById('ev-add-form-heading')?.value.trim() || title;
+  const formDescription = document.getElementById('ev-add-form-description')?.value.trim() || shortDescription || fullDescription || '';
+  const customFormFields = serializeCustomFormFieldsFromAdmin();
   const regOpen = document.getElementById('ev-add-reg-open')?.value === 'open';
   const regStart = document.getElementById('ev-add-reg-start')?.value || '';
   const regDeadline = document.getElementById('ev-add-reg-deadline')?.value || '';
   const maxParticipants = Number(document.getElementById('ev-add-max-participants')?.value || 100);
   const participationType = document.getElementById('ev-add-participation-type')?.value || 'Individual';
   const maxTeamSize = Number(document.getElementById('ev-add-max-team-size')?.value || 4);
-  const status = document.getElementById('ev-add-status')?.value || 'UPCOMING';
+  const status = document.getElementById('ev-add-status')?.value || 'Upcoming';
 
   if (!title || !venue) {
     showToast('Please fill the required event title and venue.');
@@ -818,6 +1033,13 @@ async function handleCreateEventSubmit(e) {
     title,
     category,
     status,
+    heading: formHeading,
+    formDescription: formDescription,
+    customForm: {
+      heading: formHeading,
+      description: formDescription,
+      fields: customFormFields
+    },
     registrationOpen: regOpen,
     registrationStart: regStart,
     registrationDeadline: regDeadline,
@@ -875,6 +1097,7 @@ async function handleCreateEventSubmit(e) {
         badge: nextEvent.status,
         winners: nextEvent.winners || [],
         gallery_urls: nextEvent.gallery || [],
+        custom_form: nextEvent.customForm,
         updated_at: new Date().toISOString()
       };
       if (existing) {

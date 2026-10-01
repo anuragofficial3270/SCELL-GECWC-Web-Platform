@@ -997,6 +997,17 @@ function renderAdminView() {
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Form Heading</label>
+              <input type="text" id="ev-add-form-heading" placeholder="Register for the Startup Sprint" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-500 dark:text-slate-300">Form Description</label>
+              <input type="text" id="ev-add-form-description" placeholder="Tell participants what they need to submit." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <label class="block mb-1 text-slate-500 dark:text-slate-300">Eligibility</label>
               <textarea id="ev-add-eligibility" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
             </div>
@@ -1004,6 +1015,17 @@ function renderAdminView() {
               <label class="block mb-1 text-slate-500 dark:text-slate-300">Rules / Instructions</label>
               <textarea id="ev-add-rules" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
             </div>
+          </div>
+
+          <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 p-4 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <label class="block mb-1 text-slate-500 dark:text-slate-300">Registration Form Questions</label>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Add custom Google Form-style questions like name, team, idea, etc.</p>
+              </div>
+              <button type="button" onclick="addCustomEventQuestion()" class="px-3 py-2 rounded-lg bg-brand-electric text-white text-[10px] font-mono uppercase">Add Question</button>
+            </div>
+            <div id="event-custom-question-list" class="space-y-4"></div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
