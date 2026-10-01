@@ -183,6 +183,7 @@ create policy "Users may update their own student record" on public.students for
 create policy "Users may insert their own registration" on public.registrations for insert with check (true);
 create policy "Users may update own registration" on public.registrations for update using (true) with check (true);
 create policy "Open daily game log writes" on public.daily_game_logs for insert with check (true);
+create policy "Daily game progress is readable" on public.daily_game_logs for select using (true);
 
 -- Optional: bucket creation command for Supabase SQL editor
 -- select storage.create_bucket('scell-assets', true, 'Public SCELL asset storage');

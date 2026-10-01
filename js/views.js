@@ -149,11 +149,12 @@ function renderHomeView() {
 
 /* EVENTS DIRECTORY VIEW */
 function renderEventsView() {
+  const content = SCELL_DATA.siteContent.events || {};
   const filteredEvents = SCELL_DATA.events.filter(e => {
     if (currentEventFilter === 'ALL') return true;
-    if (currentEventFilter === 'UPCOMING') return e.status === 'UPCOMING';
-    if (currentEventFilter === 'PAST') return e.status === 'COMPLETED';
-    return e.category === currentEventFilter;
+    if (currentEventFilter === 'UPCOMING') return ['UPCOMING', 'REGISTRATION OPEN'].includes(String(e.status).toUpperCase());
+    if (currentEventFilter === 'PAST') return String(e.status).toUpperCase() === 'COMPLETED';
+    return String(e.category || '').toUpperCase() === currentEventFilter;
   });
 
   const hasEvents = filteredEvents.length > 0;
@@ -163,7 +164,8 @@ function renderEventsView() {
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-10 mb-10">
         <div>
           <span class="font-mono text-xs text-brand-electric dark:text-brand-neon uppercase tracking-widest block mb-2">// EVENTS // SCELL GECWC</span>
-          <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">Events</h1>
+          <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">${content.heading || 'Events'}</h1>
+          <p class="mt-2 max-w-2xl text-sm text-slate-500 font-mono">${content.subtitle || content.intro || ''}</p>
         </div>
 
         <div class="flex flex-wrap gap-2 font-mono text-xs">
@@ -203,7 +205,7 @@ function renderEventsView() {
                 <div class="relative h-48 overflow-hidden">
                   <img src="${event.poster}" alt="${event.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                   <div class="absolute top-3 left-3 flex gap-2">
-                    <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${event.status === 'UPCOMING' ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-300'}">
+                    <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${['UPCOMING', 'REGISTRATION OPEN'].includes(String(event.status).toUpperCase()) ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-300'}">
                       ${event.status}
                     </span>
                     <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/70 backdrop-blur text-white">
@@ -232,7 +234,7 @@ function renderEventsView() {
                   </button>
                 ` : `
                   <button disabled class="flex-1 py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono text-xs font-bold cursor-not-allowed">
-                    ${event.status === 'COMPLETED' ? 'COMPLETED' : 'CLOSED'}
+                    ${String(event.status).toUpperCase() === 'COMPLETED' ? 'COMPLETED' : 'CLOSED'}
                   </button>
                 `}
                 <button onclick="navigate('event-detail', '${event.id}')" class="px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-mono text-xs cursor-pointer">
@@ -251,6 +253,7 @@ function renderEventsView() {
 function renderEventDetailView(eventId) {
   const event = SCELL_DATA.events.find(e => e.id === eventId) || SCELL_DATA.events[0];
   if (!event) return `<div class="p-20 text-center font-mono">Event not found.</div>`;
+  const completed = String(event.status).toUpperCase() === 'COMPLETED';
 
   return `
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -280,7 +283,7 @@ function renderEventDetailView(eventId) {
               </button>
             ` : `
               <span class="px-4 py-3 rounded-xl bg-slate-800 text-slate-400 font-mono text-xs font-bold uppercase">
-                ${event.status === 'COMPLETED' ? 'EVENT COMPLETED' : 'REGISTRATION CLOSED'}
+                ${completed ? 'EVENT COMPLETED' : 'REGISTRATION CLOSED'}
               </span>
             `}
           </div>
@@ -295,7 +298,7 @@ function renderEventDetailView(eventId) {
           </div>
 
           <!-- WINNERS SECTION (Shows when completed) -->
-          ${event.status === 'COMPLETED' && event.winners && event.winners.length > 0 ? `
+          ${completed && event.winners && event.winners.length > 0 ? `
             <div class="p-6 rounded-2xl border border-amber-500/40 bg-amber-500/5">
               <h2 class="text-xl font-bold font-editorial mb-4 text-amber-400 flex items-center gap-2">
                 <i data-lucide="trophy" class="w-5 h-5"></i>
@@ -314,7 +317,7 @@ function renderEventDetailView(eventId) {
           ` : ''}
 
           <!-- EVENT RECAP PHOTOS -->
-          ${event.status === 'COMPLETED' && event.gallery && event.gallery.length > 0 ? `
+          ${completed && event.gallery && event.gallery.length > 0 ? `
             <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark">
               <h2 class="text-xl font-bold font-editorial mb-4">Event Glimpses</h2>
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -356,6 +359,7 @@ function renderEventDetailView(eventId) {
 
 /* PROJECTS EXPLORER VIEW */
 function renderProjectsView() {
+  const content = SCELL_DATA.siteContent.projects || {};
   const filtered = SCELL_DATA.projects.filter(p => {
     if (currentProjectFilter === 'ALL') return true;
     return p.category.includes(currentProjectFilter);
@@ -366,7 +370,9 @@ function renderProjectsView() {
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-10 mb-10">
         <div>
           <span class="font-mono text-xs text-brand-electric dark:text-brand-neon uppercase tracking-widest block mb-2">// HARDWARE & SOFTWARE INCUBATIONS</span>
-          <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">R&D Prototypes</h1>
+          <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">${content.heading || 'R&D Prototypes'}</h1>
+          <p class="mt-2 text-sm text-slate-500 font-mono">${content.subtitle || content.intro || ''}</p>
+          ${content.description ? `<p class="mt-2 max-w-2xl text-sm text-slate-500">${content.description}</p>` : ''}
         </div>
 
         <div class="flex flex-wrap gap-2 font-mono text-xs">
@@ -426,12 +432,14 @@ function renderProjectsView() {
 
 /* STARTUPS SHOWCASE VIEW */
 function renderStartupsView() {
+  const content = SCELL_DATA.siteContent.startups || {};
   return `
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-10 mb-10">
         <span class="font-mono text-xs text-brand-electric dark:text-brand-neon uppercase tracking-widest block mb-2">// VENTURE REGISTER</span>
-        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">Student Enterprises</h1>
-        <p class="text-sm text-slate-500 max-w-2xl mt-2 font-mono">Real student-led commercial entities incubated and nurtured at GEC West Champaran under Bihar Startup Policy.</p>
+        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">${content.heading || 'Student Enterprises'}</h1>
+        <p class="text-sm text-slate-500 max-w-2xl mt-2 font-mono">${content.subtitle || content.intro || 'Real student-led commercial entities incubated and nurtured at GEC West Champaran under Bihar Startup Policy.'}</p>
+        ${content.description ? `<p class="text-sm text-slate-500 max-w-2xl mt-2">${content.description}</p>` : ''}
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -506,9 +514,14 @@ function renderStartupsView() {
 
 /* SCELL ARENA VIEW */
 function renderArenaView() {
+  const content = SCELL_DATA.siteContent.arena || {};
   const student = getCurrentStudentSession();
   const xp = student && student.xp ? student.xp : 0;
-  const todayLabel = new Date().toLocaleDateString('en-CA');
+  const todayLabel = getLocalDateKey();
+  const gameHistory = student ? getDailyGameDates(student.roll) : [];
+  const completedToday = gameHistory.includes(todayLabel);
+  const streak = student ? calculateDailyGameStreak(gameHistory, todayLabel) : 0;
+  const quiz = getDailyArenaQuiz();
   const leaderboard = SCELL_DATA.arena.leaderboard || [];
 
   return `
@@ -518,8 +531,9 @@ function renderArenaView() {
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>MISSION CONTROL // TELEMETRY & CADRE HONORS</span>
         </div>
-        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">SCELL Arena</h1>
-        <p class="text-sm text-slate-500 max-w-2xl mt-2 font-mono">Proof of Work leaderboard. Students accumulate verified XP through hackathons, patents, hardware sprints, and workshop mentorships.</p>
+        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">${content.heading || 'SCELL Arena'}</h1>
+        <p class="text-sm text-slate-500 max-w-2xl mt-2 font-mono">${content.subtitle || content.intro || 'Proof of Work leaderboard. Students accumulate verified XP through hackathons, patents, hardware sprints, and workshop mentorships.'}</p>
+        ${content.description ? `<p class="text-sm text-slate-500 max-w-2xl mt-2">${content.description}</p>` : ''}
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -570,16 +584,27 @@ function renderArenaView() {
 
         <div class="lg:col-span-4 space-y-6">
           <div class="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark font-mono text-xs">
-            <h4 class="font-bold text-sm uppercase text-brand-electric dark:text-brand-neon mb-4">Daily Engineering Puzzle</h4>
+            <h4 class="font-bold text-sm uppercase text-brand-electric dark:text-brand-neon mb-4">Daily Engineering Quiz</h4>
             <div class="rounded-2xl border border-dashed border-brand-electric/30 bg-brand-electric/5 p-4 mb-4">
-              <div class="text-[10px] text-brand-electric dark:text-brand-neon uppercase mb-2">Challenge // Logic Gate Path</div>
-              <div class="text-lg font-bold text-slate-900 dark:text-white">Optimize the circuit route</div>
-              <div class="text-[11px] text-slate-500 mt-2">Trace the correct signal path through the logic gate chain to unlock the daily XP reward.</div>
+              <div class="text-[10px] text-brand-electric dark:text-brand-neon uppercase mb-2">Challenge // ${quiz.category}</div>
+              <div class="text-base font-bold text-slate-900 dark:text-white">${quiz.question}</div>
             </div>
-            <button onclick="claimDailyArenaXp()" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-electric to-brand-neon text-white font-bold uppercase tracking-wider cursor-pointer">
-              Claim +50 XP · ${student ? 'Live' : 'Login first'}
-            </button>
-            <div class="mt-3 text-[10px] text-slate-500">Today: ${todayLabel} · Current student XP: ${xp}</div>
+            <form id="daily-arena-quiz" onsubmit="submitDailyArenaAnswer(event)" class="space-y-2">
+              ${quiz.options.map(option => `
+                <label class="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs cursor-pointer hover:border-brand-electric">
+                  <input type="radio" name="daily-arena-answer" value="${option.id}" ${completedToday ? 'disabled' : ''} class="mt-0.5 accent-blue-600">
+                  <span>${option.text}</span>
+                </label>
+              `).join('')}
+              <button id="daily-arena-submit" type="submit" ${completedToday ? 'disabled' : ''} class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-electric to-brand-neon text-white font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
+                ${completedToday ? 'Completed Today' : student ? 'Check Answer · +50 XP' : 'Login to Play'}
+              </button>
+            </form>
+            <div id="daily-arena-feedback" role="status" class="mt-3 min-h-4 text-[11px] text-slate-500">${completedToday ? 'Correct answer recorded for today.' : ''}</div>
+            <div class="mt-3 flex justify-between gap-3 text-[10px] text-slate-500">
+              <span>Today: ${todayLabel} · XP: ${xp}</span>
+              <span>Verified streak: <strong id="daily-arena-streak" class="text-brand-electric dark:text-brand-neon">${streak} days</strong></span>
+            </div>
           </div>
 
           <div class="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark font-mono text-xs">
@@ -601,12 +626,14 @@ function renderArenaView() {
 
 /* MEMORIES GALLERY VIEW */
 function renderMemoriesView() {
+  const content = SCELL_DATA.siteContent.memories || {};
   return `
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-10 mb-10">
         <span class="font-mono text-xs text-brand-electric dark:text-brand-neon uppercase tracking-widest block mb-2">// VISUAL ARCHIVE</span>
-        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">Memories & Footprints</h1>
-        <p class="text-sm text-slate-500 max-w-2xl mt-2 font-mono">Highlights from workshops, field drone operations, hackathons, and state delegations.</p>
+        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">${content.heading || 'Memories & Footprints'}</h1>
+        <p class="text-sm text-slate-500 max-w-2xl mt-2 font-mono">${content.subtitle || content.intro || 'Highlights from workshops, field drone operations, hackathons, and state delegations.'}</p>
+        ${content.description ? `<p class="text-sm text-slate-500 max-w-2xl mt-2">${content.description}</p>` : ''}
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -628,10 +655,12 @@ function renderMemoriesView() {
 
 /* TEAM VIEW */
 function renderTeamView() {
-  const faculty = SCELL_DATA.team.faculty && SCELL_DATA.team.faculty[0];
-  const coordinator = SCELL_DATA.team.districtCoordinator;
-  const reps = SCELL_DATA.team.studentRepresentatives || [];
-  const coordinators = SCELL_DATA.team.coordinators || [];
+  const content = SCELL_DATA.siteContent.team || {};
+  const isVisible = member => String(member.status || 'Active').toLowerCase() !== 'hidden';
+  const faculty = (SCELL_DATA.team.faculty || []).find(isVisible);
+  const coordinator = SCELL_DATA.team.districtCoordinator && isVisible(SCELL_DATA.team.districtCoordinator) ? SCELL_DATA.team.districtCoordinator : null;
+  const reps = (SCELL_DATA.team.studentRepresentatives || []).filter(isVisible);
+  const coordinators = (SCELL_DATA.team.coordinators || []).filter(isVisible);
   const developer = SCELL_DATA.team.developedBy;
   const safeImage = (img, fallback) => img || fallback;
 
@@ -641,7 +670,8 @@ function renderTeamView() {
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <p class="font-mono text-[10px] uppercase tracking-[0.28em] text-brand-electric dark:text-brand-neon">SCELL // PEOPLE & LEADERSHIP</p>
-            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-editorial mt-3">People powering innovation, entrepreneurship and student leadership at GECWC.</h1>
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-editorial mt-3">${content.heading || 'People powering innovation, entrepreneurship and student leadership at GECWC.'}</h1>
+            ${content.subtitle || content.intro ? `<p class="mt-3 max-w-2xl text-sm text-slate-500 font-mono">${content.subtitle || content.intro}</p>` : ''}
           </div>
           <div class="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[10px] font-mono uppercase tracking-[0.25em]">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -737,6 +767,7 @@ function renderTeamView() {
                     </div>
                     <p class="mt-2 text-sm text-brand-electric dark:text-brand-neon font-mono">${rep.role || 'Student Representative'}</p>
                     <p class="mt-1 text-xs text-slate-500 font-mono">Batch: ${rep.batch || 'To be updated'}</p>
+                    ${rep.description ? `<p class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">${rep.description}</p>` : ''}
                   </div>
                 </div>
               </div>
@@ -768,12 +799,14 @@ function renderTeamView() {
                   </div>
                 </div>
                 <div class="text-[11px] font-mono text-slate-500">${member.batch || member.org || 'Official SCELL role'}</div>
+                ${member.description ? `<p class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">${member.description}</p>` : ''}
               </div>
             `).join('')}
           </div>
         `}
       </div>
 
+      ${developer && Object.values(developer).some(value => String(value || '').trim()) ? `
       <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-950 text-white p-6 sm:p-8 shadow-[0_25px_90px_rgba(0,240,255,0.08)]">
         <div class="flex items-center justify-between gap-4 mb-6">
           <div>
@@ -812,52 +845,34 @@ function renderTeamView() {
           </div>
         </div>
       </div>
+      ` : ''}
     </div>
   `;
 }
 
 /* ABOUT VIEW */
 function renderAboutView() {
+  const content = SCELL_DATA.siteContent.about || {};
+  const pipeline = Array.isArray(content.pipeline) ? content.pipeline : [];
   return `
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-10">
-        <span class="font-mono text-xs text-brand-electric dark:text-brand-neon uppercase tracking-widest block mb-2">// THE CHARTER</span>
-        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">About SCELL GECWC</h1>
-        <p class="text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl mt-4">
-          The Startup Cell (SCELL) at Government Engineering College, West Champaran is dedicated to transforming student engineers into founders, intellectual property creators, and hardware innovators in Bihar.
-        </p>
+        <span class="font-mono text-xs text-brand-electric dark:text-brand-neon uppercase tracking-widest block mb-2">// ${content.subtitle || 'THE CHARTER'}</span>
+        <h1 class="text-4xl sm:text-5xl font-extrabold font-editorial">${content.heading || 'About SCELL GECWC'}</h1>
+        <p class="text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl mt-4">${content.description || content.intro || ''}</p>
       </div>
 
       <div>
-        <h2 class="text-2xl font-bold font-editorial mb-8">The Innovation Pipeline</h2>
+        <h2 class="text-2xl font-bold font-editorial mb-8">${content.pipelineHeading || 'The Innovation Pipeline'}</h2>
         <div class="relative border-l-2 border-brand-electric/30 ml-4 pl-8 space-y-10 font-mono">
-          <div class="relative">
-            <span class="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-brand-electric border-4 border-black"></span>
-            <span class="text-xs text-brand-electric dark:text-brand-neon font-bold">STAGE 01 // DISCOVER & IDEATE</span>
-            <h4 class="text-lg font-bold text-slate-800 dark:text-white mt-1">Idea Validation & Regional Need Analysis</h4>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Identifying concrete pain points across Champaran agriculture, flood telemetry, and supply chain logistics.</p>
-          </div>
-
-          <div class="relative">
-            <span class="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-brand-neon border-4 border-black"></span>
-            <span class="text-xs text-brand-electric dark:text-brand-neon font-bold">STAGE 02 // LAB BUILD</span>
-            <h4 class="text-lg font-bold text-slate-800 dark:text-white mt-1">Hardware & Software Rapid Prototyping</h4>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Access to PCB design, 3D printing, embedded firmware labs, and dedicated compute power at GECWC.</p>
-          </div>
-
-          <div class="relative">
-            <span class="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-indigo-500 border-4 border-black"></span>
-            <span class="text-xs text-brand-electric dark:text-brand-neon font-bold">STAGE 03 // PILOT TESTING</span>
-            <h4 class="text-lg font-bold text-slate-800 dark:text-white mt-1">Ground Deployment & Field Validation</h4>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Testing sensors in the Majhualia cane belt, Gandak floodbanks, and local municipal environments.</p>
-          </div>
-
-          <div class="relative">
-            <span class="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-emerald-400 border-4 border-black"></span>
-            <span class="text-xs text-brand-electric dark:text-brand-neon font-bold">STAGE 04 // ENTITY LAUNCH</span>
-            <h4 class="text-lg font-bold text-slate-800 dark:text-white mt-1">Bihar Startup Incubation & Legal Formation</h4>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Incorporation assistance, seed grant applications under Bihar Startup Policy, and initial angel pitch rounds.</p>
-          </div>
+          ${pipeline.map((stage, index) => `
+            <div class="relative">
+              <span class="absolute -left-[41px] top-0 w-5 h-5 rounded-full ${['bg-brand-electric', 'bg-brand-neon', 'bg-indigo-500', 'bg-emerald-400'][index % 4]} border-4 border-black"></span>
+              <span class="text-xs text-brand-electric dark:text-brand-neon font-bold">${stage.stage || `STAGE ${String(index + 1).padStart(2, '0')}`}</span>
+              <h4 class="text-lg font-bold text-slate-800 dark:text-white mt-1">${stage.title || ''}</h4>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">${stage.description || ''}</p>
+            </div>
+          `).join('')}
         </div>
       </div>
     </div>
@@ -905,6 +920,7 @@ function renderAdminView() {
   const activeTab = SCELL_ADMIN_STATE.activeTab || 'missions';
   const navTabs = [
     { key: 'missions', label: 'MISSIONS' },
+    { key: 'records', label: 'PROJECTS / STARTUPS / MEMORIES' },
     { key: 'assets', label: 'ASSETS' },
     { key: 'team', label: 'TEAM' },
     { key: 'content', label: 'CONTENT' }
@@ -968,16 +984,14 @@ function renderAdminView() {
               <input type="text" id="ev-add-venue" required placeholder="Auditorium, GECWC" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
             </div>
             <div>
-              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="navigation" class="w-3.5 h-3.5"></i> Venue Map URL</label>
-              <input type="url" id="ev-add-map-url" placeholder="https://maps.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="image" class="w-3.5 h-3.5"></i> Event Poster</label>
+              <input type="file" id="ev-add-poster-file" accept="image/*" onchange="handleEventPosterUpload(event)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric file:mr-3 file:rounded-lg file:border-0 file:bg-brand-electric file:text-white file:font-bold file:px-3 file:py-2 file:cursor-pointer">
+              <input type="hidden" id="ev-add-poster" value="">
+              <div id="ev-add-poster-preview" class="mt-2"></div>
             </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="image" class="w-3.5 h-3.5"></i> Poster Image URL</label>
-              <input type="url" id="ev-add-poster" placeholder="https://images.unsplash.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
-            </div>
             <div>
               <label class="flex items-center gap-2 mb-1 text-slate-500 dark:text-slate-300"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Rulebook PDF URL</label>
               <input type="url" id="ev-add-rulebook" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
@@ -985,10 +999,6 @@ function renderAdminView() {
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block mb-1 text-slate-500 dark:text-slate-300">Short Description</label>
-              <textarea id="ev-add-short-desc" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
-            </div>
             <div>
               <label class="block mb-1 text-slate-500 dark:text-slate-300">Full Event Description</label>
               <textarea id="ev-add-full-desc" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
@@ -1010,10 +1020,6 @@ function renderAdminView() {
             <div>
               <label class="block mb-1 text-slate-500 dark:text-slate-300">Eligibility</label>
               <textarea id="ev-add-eligibility" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
-            </div>
-            <div>
-              <label class="block mb-1 text-slate-500 dark:text-slate-300">Rules / Instructions</label>
-              <textarea id="ev-add-rules" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
             </div>
           </div>
 
@@ -1096,7 +1102,7 @@ function renderAdminView() {
                   <div>
                     <div class="flex flex-wrap items-center gap-2 mb-1">
                       <span class="px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-mono font-bold">${ev.category || 'Workshop'}</span>
-                      <span class="px-2 py-1 rounded-full ${ev.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'} text-[10px] font-mono font-bold">${ev.status}</span>
+                      <span class="px-2 py-1 rounded-full ${String(ev.status).toUpperCase() === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'} text-[10px] font-mono font-bold">${ev.status}</span>
                     </div>
                     <h4 class="text-lg font-bold font-editorial">${ev.title}</h4>
                     <div class="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500 font-mono">
@@ -1107,12 +1113,11 @@ function renderAdminView() {
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <button onclick="prefillEventEditor('${ev.id}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
+                  <button onclick="editEvent('${ev.id}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">EDIT</button>
                   <button onclick="navigate('event-detail', '${ev.id}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">VIEW</button>
-                  <button onclick="exportRegistrationsCSV()" class="px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-400 text-[10px] font-mono uppercase">REGISTRATIONS</button>
+                  <button onclick="exportRegistrationsCSV('${ev.id}')" class="px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-400 text-[10px] font-mono uppercase">REGISTRATIONS</button>
                   <button onclick="toggleEventRegistration('${ev.id}', ${!ev.registrationOpen})" class="px-3 py-2 rounded-lg border ${ev.registrationOpen ? 'border-red-500/40 text-red-400' : 'border-emerald-500/40 text-emerald-400'} text-[10px] font-mono uppercase">${ev.registrationOpen ? 'CLOSE REG' : 'OPEN REG'}</button>
                   <button onclick="markEventCompleted('${ev.id}')" class="px-3 py-2 rounded-lg border border-amber-500/40 text-amber-400 text-[10px] font-mono uppercase">FINISHED</button>
-                  <button onclick="duplicateEvent('${ev.id}')" class="px-3 py-2 rounded-lg border border-violet-500/40 text-violet-400 text-[10px] font-mono uppercase">DUPLICATE</button>
                   <button onclick="deleteEvent('${ev.id}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">DELETE</button>
                 </div>
               </div>
@@ -1176,6 +1181,24 @@ function renderAdminView() {
   const renderTeamTab = () => `
     <div class="space-y-8">
       <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
+        <div class="flex items-center justify-between gap-3 mb-5">
+          <h3 class="text-xl font-bold font-editorial">Developed By Profile</h3>
+          <button type="button" onclick="deleteDeveloperProfile()" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">Clear Profile</button>
+        </div>
+        <form onsubmit="saveDeveloperProfile(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+          ${[
+            ['name', 'Name'], ['branch', 'Branch'], ['batch', 'Batch'], ['role', 'Role'], ['image', 'Photo URL']
+          ].map(([key, label]) => `<div class="${key === 'image' ? 'md:col-span-2' : ''}">
+            <label for="developer-${key}" class="block mb-1 text-slate-500 dark:text-slate-300">${label}</label>
+            <input id="developer-${key}" type="${key === 'image' ? 'url' : 'text'}" value="${escapeHtml(SCELL_DATA.team.developedBy?.[key] || '')}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>`).join('')}
+          <div class="md:col-span-2 flex justify-end">
+            <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-electric text-white text-xs font-mono uppercase">Save Profile</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark shadow-xl">
         <h3 class="text-2xl font-bold font-editorial mb-6">Team Management</h3>
         <form onsubmit="handleSaveTeamMember(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
           <div>
@@ -1185,6 +1208,10 @@ function renderAdminView() {
           <div>
             <label class="block mb-1 text-slate-500 dark:text-slate-300">Designation / Role *</label>
             <input id="team-role" required type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block mb-1 text-slate-500 dark:text-slate-300">Public Bio / Description</label>
+            <textarea id="team-description" rows="3" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric"></textarea>
           </div>
           <div>
             <label class="block mb-1 text-slate-500 dark:text-slate-300">Category</label>
@@ -1311,6 +1338,12 @@ function renderAdminView() {
                 <label class="block mb-1 text-slate-500 dark:text-slate-300">Description</label>
                 <textarea id="content-description-${section}" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric">${(content.description || content.subheading || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
               </div>
+              ${section === 'about' ? `
+                <div class="md:col-span-2">
+                  <label class="block mb-1 text-slate-500 dark:text-slate-300">Innovation Pipeline (JSON array)</label>
+                  <textarea id="content-pipeline-about" rows="10" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 font-mono text-xs outline-none focus:border-brand-electric">${escapeHtml(JSON.stringify(content.pipeline || [], null, 2))}</textarea>
+                </div>
+              ` : ''}
             </div>
           </div>
         `;
@@ -1318,8 +1351,68 @@ function renderAdminView() {
     </div>
   `;
 
+  const renderRecordsTab = () => {
+    const collection = SCELL_CMS_COLLECTION_FIELDS[SCELL_ADMIN_STATE.activeCollection] ? SCELL_ADMIN_STATE.activeCollection : 'projects';
+    const items = SCELL_DATA[collection] || [];
+    const editingItem = items.find(item => String(item.id) === String(SCELL_ADMIN_STATE.editingContentRecordId));
+    const fields = SCELL_CMS_COLLECTION_FIELDS[collection];
+
+    return `
+      <div class="space-y-6">
+        <div class="flex items-center gap-3">
+          <label for="admin-record-collection" class="font-mono text-xs uppercase text-slate-500">Collection</label>
+          <select id="admin-record-collection" onchange="setAdminCollection(this.value)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+            <option value="projects" ${collection === 'projects' ? 'selected' : ''}>Projects</option>
+            <option value="startups" ${collection === 'startups' ? 'selected' : ''}>Startups</option>
+            <option value="memories" ${collection === 'memories' ? 'selected' : ''}>Memories</option>
+          </select>
+        </div>
+        <form onsubmit="saveAdminContentRecord(event)" class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark space-y-4">
+          <h3 class="text-xl font-bold font-editorial">${editingItem ? 'Edit' : 'Add'} ${collection.slice(0, -1)}</h3>
+          <input id="admin-record-id" type="hidden" value="${escapeHtml(editingItem?.id || '')}">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${fields.map(field => {
+              const rawValue = editingItem?.[field.key];
+              const value = Array.isArray(rawValue) ? rawValue.join(', ') : (rawValue || '');
+              const inputClass = 'w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 outline-none focus:border-brand-electric';
+              return `<div class="${field.multiline ? 'md:col-span-2' : ''}">
+                <label for="admin-record-${field.key}" class="block mb-1 text-xs text-slate-500 dark:text-slate-300">${escapeHtml(field.label)}</label>
+                ${field.multiline
+                  ? `<textarea id="admin-record-${field.key}" data-record-field="${field.key}" rows="3" ${field.required ? 'required' : ''} class="${inputClass}">${escapeHtml(value)}</textarea>`
+                  : `<input id="admin-record-${field.key}" data-record-field="${field.key}" type="${field.list ? 'text' : (field.type || 'text')}" value="${escapeHtml(value)}" ${field.required ? 'required' : ''} placeholder="${field.list ? 'Separate entries with commas' : ''}" class="${inputClass}">`}
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="flex justify-end gap-2">
+            ${editingItem ? '<button type="button" onclick="resetAdminContentRecord()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-mono uppercase">Cancel</button>' : ''}
+            <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-electric text-white text-xs font-mono uppercase">${editingItem ? 'Save Changes' : 'Add Record'}</button>
+          </div>
+        </form>
+        <div class="space-y-3">
+          ${items.length ? items.map(item => {
+            const itemId = String(item.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const title = item.name || item.title || 'Untitled';
+            const subtitle = item.category || item.tag || item.stage || item.status || '';
+            const image = item.image || item.img || '';
+            return `<article class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-brand-cardDark">
+              <div class="flex items-center gap-3 min-w-0">
+                ${image ? `<img src="${escapeHtml(image)}" alt="" class="w-14 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700">` : ''}
+                <div class="min-w-0"><h4 class="font-bold truncate">${escapeHtml(title)}</h4><p class="mt-1 text-xs text-slate-500">${escapeHtml(subtitle)}</p></div>
+              </div>
+              <div class="flex gap-2">
+                <button type="button" onclick="editAdminContentRecord('${collection}', '${itemId}')" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-[10px] font-mono uppercase">Edit</button>
+                <button type="button" onclick="deleteAdminContentRecord('${collection}', '${itemId}')" class="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 text-[10px] font-mono uppercase">Delete</button>
+              </div>
+            </article>`;
+          }).join('') : '<div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-sm text-slate-500">No records in this collection yet.</div>'}
+        </div>
+      </div>
+    `;
+  };
+
   const tabContent = {
     missions: renderMissionsTab(),
+    records: renderRecordsTab(),
     assets: renderAssetsTab(),
     team: renderTeamTab(),
     content: renderContentTab()

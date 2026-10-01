@@ -33,7 +33,19 @@ const SCELL_DATA = {
     arena: { heading: 'SCELL Arena', subtitle: 'Participation and recognition', intro: 'Simple, clean profiles for members of the SCELL community.', visible: true },
     memories: { heading: 'Memories & Footprints', subtitle: 'Visual archive', intro: 'Moments from workshops, competitions and community events.', visible: true },
     team: { heading: 'People powering innovation', subtitle: 'Leadership and student network', intro: 'Faculty, coordinators, representatives and builders behind SCELL.', visible: true },
-    about: { heading: 'About SCELL GECWC', subtitle: 'Our charter', intro: 'SCELL helps students transform ideas into prototypes, ventures and measurable impact.', visible: true }
+    about: {
+      heading: 'About SCELL GECWC',
+      subtitle: 'Our charter',
+      intro: 'The Startup Cell (SCELL) at Government Engineering College, West Champaran is dedicated to transforming student engineers into founders, intellectual property creators, and hardware innovators in Bihar.',
+      description: 'The Startup Cell (SCELL) at Government Engineering College, West Champaran is dedicated to transforming student engineers into founders, intellectual property creators, and hardware innovators in Bihar.',
+      pipeline: [
+        { stage: 'STAGE 01 // DISCOVER & IDEATE', title: 'Idea Validation & Regional Need Analysis', description: 'Identifying concrete pain points across Champaran agriculture, flood telemetry, and supply chain logistics.' },
+        { stage: 'STAGE 02 // LAB BUILD', title: 'Hardware & Software Rapid Prototyping', description: 'Access to PCB design, 3D printing, embedded firmware labs, and dedicated compute power at GECWC.' },
+        { stage: 'STAGE 03 // PILOT TESTING', title: 'Ground Deployment & Field Validation', description: 'Testing sensors in the Majhualia cane belt, Gandak floodbanks, and local municipal environments.' },
+        { stage: 'STAGE 04 // ENTITY LAUNCH', title: 'Bihar Startup Incubation & Legal Formation', description: 'Incorporation assistance, seed grant applications under Bihar Startup Policy, and initial angel pitch rounds.' }
+      ],
+      visible: true
+    }
   },
   projects: [
     {
@@ -204,7 +216,11 @@ function hydratePersistedScellData() {
   if (saved.events) SCELL_DATA.events = saved.events;
   if (saved.registrations) SCELL_DATA.registrations = saved.registrations;
   if (saved.assets) SCELL_DATA.assets = saved.assets;
-  if (saved.siteContent) SCELL_DATA.siteContent = { ...SCELL_DATA.siteContent, ...saved.siteContent };
+  if (saved.siteContent) {
+    Object.entries(saved.siteContent).forEach(([section, content]) => {
+      SCELL_DATA.siteContent[section] = { ...(SCELL_DATA.siteContent[section] || {}), ...(content || {}) };
+    });
+  }
   if (saved.projects) SCELL_DATA.projects = saved.projects;
   if (saved.startups) SCELL_DATA.startups = saved.startups;
   if (saved.memories) SCELL_DATA.memories = saved.memories;
@@ -333,27 +349,42 @@ async function syncFromCloud() {
 
     const { data: eventsData, error: evErr } = await db.from('events').select('*').order('created_at', { ascending: false });
     if (!evErr && eventsData) {
-      SCELL_DATA.events = eventsData.map(e => ({
-        id: e.id,
-        title: e.title,
-        category: e.category || 'WORKSHOP',
-        status: e.status || 'UPCOMING',
-        featured: e.featured || false,
-        date: e.event_date || 'TBA',
-        time: e.time || '10:00 AM IST',
-        venue: e.venue || 'GECWC Campus',
-        collaborator: e.collaborator || 'SCELL GECWC',
-        poster: e.poster_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=1200&auto=format&fit=crop',
-        rulebook: e.rulebook_url || '',
-        registrationOpen: e.registration_open ?? true,
-        seatsTotal: e.seats_total || 100,
-        seatsFilled: e.seats_filled || 0,
-        badge: e.badge || (e.status === 'UPCOMING' ? 'ACTIVE' : 'ARCHIVED'),
-        description: e.description || 'Official Event organized by Startup Cell, GEC West Champaran.',
-        customForm: e.custom_form || { heading: e.title, description: e.description || '', fields: [] },
-        winners: e.winners || [],
-        gallery: e.gallery_urls || []
-      }));
+      SCELL_DATA.events = eventsData.map(e => {
+        const customForm = e.custom_form || {};
+        const startDate = customForm.startDate || (/^\d{4}-\d{2}-\d{2}$/.test(e.event_date || '') ? e.event_date : '');
+        return {
+          id: e.id,
+          title: e.title,
+          category: e.category || 'Workshop',
+          status: e.status || 'Upcoming',
+          featured: e.featured || false,
+          date: customForm.date || e.event_date || 'TBA',
+          time: customForm.time || e.time || 'TBA',
+          venue: e.venue || 'GECWC Campus',
+          collaborator: e.collaborator || 'SCELL GECWC',
+          poster: e.poster_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=1200&auto=format&fit=crop',
+          rulebook: e.rulebook_url || '',
+          registrationOpen: e.registration_open ?? true,
+          registrationStart: customForm.registrationStart || '',
+          registrationDeadline: customForm.registrationDeadline || '',
+          maxParticipants: customForm.maxParticipants || e.seats_total || 100,
+          participationType: customForm.participationType || 'Individual',
+          maxTeamSize: customForm.maxTeamSize || 4,
+          seatsTotal: e.seats_total || 100,
+          seatsFilled: e.seats_filled || 0,
+          badge: e.badge || (String(e.status).toUpperCase() === 'UPCOMING' ? 'ACTIVE' : 'ARCHIVED'),
+          description: e.description || 'Official Event organized by Startup Cell, GEC West Champaran.',
+          fullDescription: e.description || '',
+          eligibility: customForm.eligibility || '',
+          startDate,
+          endDate: customForm.endDate || '',
+          startTime: customForm.startTime || '',
+          endTime: customForm.endTime || '',
+          customForm: { heading: e.title, description: e.description || '', fields: [], ...customForm },
+          winners: e.winners || [],
+          gallery: e.gallery_urls || []
+        };
+      });
       SCELL_DATA.stats.eventsCount = SCELL_DATA.events.length;
     }
 

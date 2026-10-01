@@ -362,7 +362,39 @@ const SCELL_ADMIN_STATE = {
   activeTab: 'missions',
   editingEventId: null,
   editingTeamMemberId: null,
+  activeCollection: 'projects',
+  editingContentRecordId: null,
   contentSection: 'home'
+};
+
+const SCELL_CMS_COLLECTION_FIELDS = {
+  projects: [
+    { key: 'name', label: 'Project Name', required: true },
+    { key: 'category', label: 'Category' },
+    { key: 'status', label: 'Status' },
+    { key: 'team', label: 'Team Members (comma-separated)', list: true },
+    { key: 'problem', label: 'Problem', multiline: true },
+    { key: 'solution', label: 'Solution', multiline: true },
+    { key: 'techStack', label: 'Technology Stack (comma-separated)', list: true },
+    { key: 'github', label: 'GitHub URL', type: 'url' },
+    { key: 'demo', label: 'Demo URL', type: 'url' },
+    { key: 'image', label: 'Image URL', type: 'url' }
+  ],
+  startups: [
+    { key: 'name', label: 'Startup Name', required: true },
+    { key: 'stage', label: 'Stage' },
+    { key: 'founders', label: 'Founders' },
+    { key: 'category', label: 'Category' },
+    { key: 'valuation', label: 'Valuation' },
+    { key: 'description', label: 'Description', multiline: true },
+    { key: 'achievements', label: 'Achievements', multiline: true }
+  ],
+  memories: [
+    { key: 'title', label: 'Memory Title', required: true },
+    { key: 'tag', label: 'Category / Tag' },
+    { key: 'date', label: 'Date' },
+    { key: 'img', label: 'Image URL', type: 'url' }
+  ]
 };
 
 function escapeHtml(value) {
@@ -654,6 +686,7 @@ function renderRoute(route, param = null) {
       break;
     case 'arena':
       app.innerHTML = renderArenaView();
+      syncDailyGameHistory();
       break;
     case 'memories':
       app.innerHTML = renderMemoriesView();
@@ -924,6 +957,13 @@ function getEventById(eventId) {
   return SCELL_DATA.events.find(event => event.id === eventId) || null;
 }
 
+function normalizeEventStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  const option = ['Draft', 'Upcoming', 'Registration Open', 'Registration Closed', 'Ongoing', 'Completed']
+    .find(value => value.toLowerCase() === normalized);
+  return option || 'Upcoming';
+}
+
 function prefillEventEditor(eventId) {
   const event = getEventById(eventId);
   if (!event) return;
@@ -938,13 +978,9 @@ function prefillEventEditor(eventId) {
     'ev-add-start-time': event.startTime || '',
     'ev-add-end-time': event.endTime || '',
     'ev-add-venue': event.venue || '',
-    'ev-add-map-url': event.mapUrl || '',
-    'ev-add-poster': event.poster || '',
     'ev-add-rulebook': event.rulebook || '',
-    'ev-add-short-desc': event.shortDescription || event.description || '',
     'ev-add-full-desc': event.fullDescription || event.description || '',
     'ev-add-eligibility': event.eligibility || '',
-    'ev-add-rules': event.rules || '',
     'ev-add-form-heading': customForm.heading || event.title || '',
     'ev-add-form-description': customForm.description || event.description || '',
     'ev-add-reg-open': event.registrationOpen ? 'open' : 'closed',
@@ -953,7 +989,7 @@ function prefillEventEditor(eventId) {
     'ev-add-max-participants': event.maxParticipants || 100,
     'ev-add-participation-type': event.participationType || 'Individual',
     'ev-add-max-team-size': event.maxTeamSize || 4,
-    'ev-add-status': event.status || 'Upcoming'
+    'ev-add-status': normalizeEventStatus(event.status)
   };
 
   Object.entries(fields).forEach(([id, value]) => {
@@ -961,17 +997,84 @@ function prefillEventEditor(eventId) {
     if (el) el.value = value;
   });
 
+  const posterInput = document.getElementById('ev-add-poster');
+  const posterFile = document.getElementById('ev-add-poster-file');
+  const posterPreview = document.getElementById('ev-add-poster-preview');
+  if (posterInput) posterInput.value = event.poster || '';
+  if (posterFile) posterFile.value = '';
+  if (posterPreview) posterPreview.innerHTML = event.poster ? `<img src="${escapeHtml(event.poster)}" alt="Event poster preview" class="h-28 w-20 rounded-lg border border-slate-300 dark:border-slate-700 object-cover">` : '';
+
   renderCustomQuestionEditorList(customForm.fields || []);
   const saveBtn = document.getElementById('publish-event-btn');
   if (saveBtn) saveBtn.textContent = 'UPDATE EVENT';
+  document.getElementById('ev-add-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function editEvent(eventId) {
+  if (SCELL_ADMIN_STATE.activeTab !== 'missions') {
+    SCELL_ADMIN_STATE.activeTab = 'missions';
+    renderRoute('admin');
+  }
+  prefillEventEditor(eventId);
+}
+
+async function handleEventPosterUpload(event) {
+  const file = event.currentTarget.files?.[0];
+  const posterInput = document.getElementById('ev-add-poster');
+  const preview = document.getElementById('ev-add-poster-preview');
+  if (!file || !posterInput || !preview) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('Choose an image file for the event poster.');
+    event.currentTarget.value = '';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Poster images must be 5 MB or smaller.');
+    event.currentTarget.value = '';
+    return;
+  }
+
+  const submitButton = document.getElementById('publish-event-btn');
+  if (submitButton) submitButton.disabled = true;
+  preview.innerHTML = '<p class="text-[10px] font-mono text-slate-500">Uploading poster…</p>';
+
+  try {
+    let posterUrl = null;
+    if (db) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+      posterUrl = await uploadAssetToStorage(file, `event-posters/${Date.now()}-${safeName}`);
+    }
+
+    if (!posterUrl) {
+      if (file.size > 1024 * 1024) throw new Error('Cloud upload is unavailable; choose an image under 1 MB for browser-local saving.');
+      posterUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Could not read the selected image.'));
+        reader.readAsDataURL(file);
+      });
+      showToast('Poster ready; it will be saved in this browser.');
+    } else {
+      showToast('Poster uploaded successfully.');
+    }
+
+    posterInput.value = posterUrl;
+    preview.innerHTML = `<img src="${escapeHtml(posterUrl)}" alt="Event poster preview" class="h-28 w-20 rounded-lg border border-slate-300 dark:border-slate-700 object-cover">`;
+  } catch (error) {
+    preview.innerHTML = '';
+    event.currentTarget.value = '';
+    showToast(error.message || 'Poster upload failed.');
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
 }
 
 function resetEventEditor() {
   SCELL_ADMIN_STATE.editingEventId = null;
   const ids = [
     'ev-add-title', 'ev-add-category', 'ev-add-start-date', 'ev-add-end-date', 'ev-add-start-time', 'ev-add-end-time',
-    'ev-add-venue', 'ev-add-map-url', 'ev-add-poster', 'ev-add-rulebook', 'ev-add-short-desc', 'ev-add-full-desc',
-    'ev-add-eligibility', 'ev-add-rules', 'ev-add-form-heading', 'ev-add-form-description', 'ev-add-reg-open', 'ev-add-reg-start', 'ev-add-reg-deadline', 'ev-add-max-participants',
+    'ev-add-venue', 'ev-add-poster', 'ev-add-rulebook', 'ev-add-full-desc',
+    'ev-add-eligibility', 'ev-add-form-heading', 'ev-add-form-description', 'ev-add-reg-open', 'ev-add-reg-start', 'ev-add-reg-deadline', 'ev-add-max-participants',
     'ev-add-participation-type', 'ev-add-max-team-size', 'ev-add-status'
   ];
   ids.forEach(id => {
@@ -981,6 +1084,10 @@ function resetEventEditor() {
       else el.value = '';
     }
   });
+  const posterFile = document.getElementById('ev-add-poster-file');
+  if (posterFile) posterFile.value = '';
+  const posterPreview = document.getElementById('ev-add-poster-preview');
+  if (posterPreview) posterPreview.innerHTML = '';
   renderCustomQuestionEditorList([createDefaultCustomQuestion()]);
   const saveBtn = document.getElementById('publish-event-btn');
   if (saveBtn) saveBtn.textContent = 'PUBLISH EVENT LIVE';
@@ -995,15 +1102,12 @@ async function handleCreateEventSubmit(e) {
   const startTime = document.getElementById('ev-add-start-time')?.value || '';
   const endTime = document.getElementById('ev-add-end-time')?.value || '';
   const venue = document.getElementById('ev-add-venue')?.value.trim();
-  const mapUrl = document.getElementById('ev-add-map-url')?.value.trim();
   const poster = document.getElementById('ev-add-poster')?.value.trim();
   const rulebook = document.getElementById('ev-add-rulebook')?.value.trim();
-  const shortDescription = document.getElementById('ev-add-short-desc')?.value.trim();
   const fullDescription = document.getElementById('ev-add-full-desc')?.value.trim();
   const eligibility = document.getElementById('ev-add-eligibility')?.value.trim();
-  const rules = document.getElementById('ev-add-rules')?.value.trim();
   const formHeading = document.getElementById('ev-add-form-heading')?.value.trim() || title;
-  const formDescription = document.getElementById('ev-add-form-description')?.value.trim() || shortDescription || fullDescription || '';
+  const formDescription = document.getElementById('ev-add-form-description')?.value.trim() || fullDescription || '';
   const customFormFields = serializeCustomFormFieldsFromAdmin();
   const regOpen = document.getElementById('ev-add-reg-open')?.value === 'open';
   const regStart = document.getElementById('ev-add-reg-start')?.value || '';
@@ -1038,7 +1142,19 @@ async function handleCreateEventSubmit(e) {
     customForm: {
       heading: formHeading,
       description: formDescription,
-      fields: customFormFields
+      fields: customFormFields,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      registrationStart: regStart,
+      registrationDeadline: regDeadline,
+      eligibility,
+      participationType,
+      maxTeamSize,
+      maxParticipants,
+      date: eventDates.date,
+      time: eventDates.time
     },
     registrationOpen: regOpen,
     registrationStart: regStart,
@@ -1047,14 +1163,14 @@ async function handleCreateEventSubmit(e) {
     participationType,
     maxTeamSize,
     venue,
-    mapUrl,
+    mapUrl: existing?.mapUrl || '',
     poster: poster || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop',
     rulebook,
-    description: shortDescription || fullDescription || 'Official SCELL mission for the campus innovation ecosystem.',
-    fullDescription: fullDescription || shortDescription,
-    shortDescription: shortDescription || fullDescription,
+    description: fullDescription || 'Official SCELL mission for the campus innovation ecosystem.',
+    fullDescription,
+    shortDescription: '',
     eligibility: eligibility || 'Open to GECWC students and community participants as applicable.',
-    rules: rules || 'Follow all campus rules and event instructions.',
+    rules: existing?.rules || '',
     date: eventDates.date,
     time: eventDates.time,
     startDate,
@@ -1101,12 +1217,18 @@ async function handleCreateEventSubmit(e) {
         updated_at: new Date().toISOString()
       };
       if (existing) {
-        await db.from('events').upsert(payload, { onConflict: 'id' });
+        const { error } = await db.from('events').upsert(payload, { onConflict: 'id' });
+        if (error) throw error;
       } else {
-        await db.from('events').insert(payload);
+        const { error } = await db.from('events').insert(payload);
+        if (error) throw error;
       }
     } catch (error) {
       console.warn('Supabase event sync warning:', error);
+      showToast(`Saved locally; cloud save failed: ${error.message || 'check connection'}`);
+      resetEventEditor();
+      renderRoute('admin');
+      return;
     }
   }
 
@@ -1120,14 +1242,20 @@ async function toggleEventRegistration(eventId, newStatus) {
   if (!event) return;
 
   event.registrationOpen = newStatus;
-  event.status = newStatus ? (event.status === 'COMPLETED' ? 'COMPLETED' : 'UPCOMING') : 'REGISTRATION CLOSED';
+  event.status = String(event.status).toUpperCase() === 'COMPLETED'
+    ? 'Completed'
+    : (newStatus ? 'Registration Open' : 'Registration Closed');
   savePersistedScellData();
 
   if (db) {
     try {
-      await db.from('events').update({ registration_open: newStatus, status: event.status, updated_at: new Date().toISOString() }).eq('id', eventId);
+      const { error } = await db.from('events').update({ registration_open: newStatus, status: event.status, updated_at: new Date().toISOString() }).eq('id', eventId);
+      if (error) throw error;
     } catch (error) {
       console.warn('Registration sync warning:', error);
+      showToast(`Saved locally; cloud update failed: ${error.message || 'check connection'}`);
+      renderRoute('admin');
+      return;
     }
   }
 
@@ -1139,17 +1267,22 @@ async function markEventCompleted(eventId) {
   const event = SCELL_DATA.events.find(item => item.id === eventId);
   if (!event) return;
 
-  const winnerName = prompt('Enter winner name or winning team:', event.title) || 'Winner';
-  event.status = 'COMPLETED';
+  const winnerName = prompt('Enter winner name or winning team:', event.title);
+  if (!winnerName || !winnerName.trim()) return;
+  event.status = 'Completed';
   event.registrationOpen = false;
   event.winners = [{ rank: 1, name: winnerName, project: event.title }];
   savePersistedScellData();
 
   if (db) {
     try {
-      await db.from('events').update({ status: 'COMPLETED', registration_open: false, winners: event.winners, updated_at: new Date().toISOString() }).eq('id', eventId);
+      const { error } = await db.from('events').update({ status: event.status, registration_open: false, winners: event.winners, updated_at: new Date().toISOString() }).eq('id', eventId);
+      if (error) throw error;
     } catch (error) {
       console.warn('Completion sync warning:', error);
+      showToast(`Saved locally; cloud update failed: ${error.message || 'check connection'}`);
+      renderRoute('admin');
+      return;
     }
   }
 
@@ -1157,34 +1290,36 @@ async function markEventCompleted(eventId) {
   renderRoute('admin');
 }
 
-function duplicateEvent(eventId) {
-  const event = getEventById(eventId);
-  if (!event) return;
-  const cloned = { ...event, id: `EV-${Date.now().toString(36).toUpperCase()}`, title: `${event.title} (Copy)` };
-  SCELL_DATA.events.unshift(cloned);
-  savePersistedScellData();
-  showToast('Event duplicated.');
-  renderRoute('admin');
-}
-
-function deleteEvent(eventId) {
+async function deleteEvent(eventId) {
   const ok = window.confirm('Delete this event permanently from the SCELL command hub?');
   if (!ok) return;
 
+  if (db) {
+    try {
+      const { error } = await db.from('events').delete().eq('id', eventId);
+      if (error) throw error;
+    } catch (error) {
+      console.warn('Delete event warning:', error);
+      showToast(`Event was not deleted: ${error.message || 'cloud update failed'}`);
+      return;
+    }
+  }
+
   SCELL_DATA.events = SCELL_DATA.events.filter(item => item.id !== eventId);
   savePersistedScellData();
-  if (db) {
-    try { db.from('events').delete().eq('id', eventId); } catch (error) { console.warn('Delete event warning:', error); }
-  }
+  SCELL_DATA.stats.eventsCount = SCELL_DATA.events.length;
   showToast('Event deleted successfully.');
   renderRoute('admin');
 }
 
-function exportRegistrationsCSV() {
+function exportRegistrationsCSV(eventId = null) {
+  const registrations = eventId
+    ? SCELL_DATA.registrations.filter(reg => (reg.eventId || reg.event_id) === eventId)
+    : SCELL_DATA.registrations;
   const rows = [
     ['ID', 'Event', 'Name', 'Roll', 'Email', 'Branch', 'Semester', 'Status']
   ];
-  SCELL_DATA.registrations.forEach(reg => {
+  registrations.forEach(reg => {
     rows.push([reg.id, reg.eventName || '', reg.name || '', reg.roll || '', reg.email || '', reg.branch || '', reg.sem || '', reg.status || 'confirmed']);
   });
 
@@ -1201,23 +1336,6 @@ function exportRegistrationsCSV() {
 
 function downloadSlipMock() {
   window.print();
-}
-
-function exportRegistrationsCSV() {
-  let csv = "ID,Event,Name,Roll,Email,Branch,Semester,Status\n";
-  SCELL_DATA.registrations.forEach(r => {
-    csv += `"${r.id}","${r.eventName}","${r.name}","${r.roll}","${r.email}","${r.branch}","${r.sem}","${r.status}"\n`;
-  });
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `SCELL_GECWC_Registrations_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  showToast("CSV dataset exported successfully.");
 }
 
 /* STUDENT PORTAL MODAL & TAB CONTROLLER */
@@ -1509,37 +1627,200 @@ function showToast(msg) {
   }, 3500);
 }
 
-async function claimDailyArenaXp() {
+const SCELL_DAILY_QUIZZES = [
+  {
+    category: 'Embedded Systems',
+    question: 'Which interface is commonly used for short-distance communication between a microcontroller and a sensor using two signal lines?',
+    answer: 'i2c',
+    options: [
+      { id: 'uart', text: 'UART: transmit and receive lines' },
+      { id: 'i2c', text: 'I²C: serial data and serial clock' },
+      { id: 'pwm', text: 'PWM: pulse-width output' },
+      { id: 'gpio', text: 'GPIO: one independent pin per signal' }
+    ]
+  },
+  {
+    category: 'Programming',
+    question: 'What is the time complexity of binary search on a sorted array?',
+    answer: 'logn',
+    options: [
+      { id: 'one', text: 'O(1)' },
+      { id: 'n', text: 'O(n)' },
+      { id: 'logn', text: 'O(log n)' },
+      { id: 'n2', text: 'O(n²)' }
+    ]
+  },
+  {
+    category: 'Electronics',
+    question: 'What does a capacitor primarily store in a circuit?',
+    answer: 'charge',
+    options: [
+      { id: 'heat', text: 'Heat energy' },
+      { id: 'charge', text: 'Electrical charge in an electric field' },
+      { id: 'code', text: 'Digital instructions' },
+      { id: 'resistance', text: 'Permanent resistance' }
+    ]
+  },
+  {
+    category: 'Innovation',
+    question: 'Which prototype test gives the strongest early evidence that a design solves a real user problem?',
+    answer: 'users',
+    options: [
+      { id: 'colors', text: 'Choosing a final color palette' },
+      { id: 'users', text: 'Observing target users try it against the problem' },
+      { id: 'logo', text: 'Publishing a logo' },
+      { id: 'pitch', text: 'Writing a longer pitch deck' }
+    ]
+  }
+];
+
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDailyArenaQuiz(date = new Date()) {
+  const dayNumber = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+  return SCELL_DAILY_QUIZZES[dayNumber % SCELL_DAILY_QUIZZES.length];
+}
+
+function getDailyGameDates(roll) {
+  if (!roll) return [];
+  try {
+    const dates = JSON.parse(localStorage.getItem(`scell_daily_game_dates_${roll}`) || '[]');
+    return Array.isArray(dates) ? [...new Set(dates)] : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveDailyGameDate(roll, date) {
+  const dates = getDailyGameDates(roll);
+  if (!dates.includes(date)) dates.push(date);
+  localStorage.setItem(`scell_daily_game_dates_${roll}`, JSON.stringify(dates));
+  return dates;
+}
+
+function calculateDailyGameStreak(dates, today = getLocalDateKey()) {
+  const completed = new Set(dates);
+  const todayDate = new Date(`${today}T00:00:00`);
+  const yesterdayDate = new Date(todayDate);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  let cursor = completed.has(today) ? todayDate : yesterdayDate;
+  const expectedDate = getLocalDateKey(cursor);
+  if (!completed.has(expectedDate)) return 0;
+
+  let streak = 0;
+  while (completed.has(getLocalDateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+async function syncDailyGameHistory() {
+  const student = getCurrentStudentSession();
+  if (!student || !db) return;
+
+  try {
+    const { data, error } = await db.from('daily_game_logs')
+      .select('date_claimed')
+      .eq('student_roll', student.roll)
+      .order('date_claimed', { ascending: false })
+      .limit(365);
+    if (error || !data) return;
+
+    const mergedDates = [...new Set([...getDailyGameDates(student.roll), ...data.map(row => String(row.date_claimed).slice(0, 10))])];
+    localStorage.setItem(`scell_daily_game_dates_${student.roll}`, JSON.stringify(mergedDates));
+    const streakNode = document.getElementById('daily-arena-streak');
+    if (streakNode) streakNode.textContent = `${calculateDailyGameStreak(mergedDates)} days`;
+
+    const today = getLocalDateKey();
+    if (mergedDates.includes(today)) {
+      const submitButton = document.getElementById('daily-arena-submit');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Completed Today';
+      }
+      document.querySelectorAll('#daily-arena-quiz input').forEach(input => { input.disabled = true; });
+      const feedback = document.getElementById('daily-arena-feedback');
+      if (feedback) feedback.textContent = 'Correct answer recorded for today.';
+    }
+  } catch (error) {
+    console.warn('Daily quiz history sync failed:', error);
+  }
+}
+
+async function submitDailyArenaAnswer(event) {
+  event.preventDefault();
   const student = getCurrentStudentSession();
   if (!student) {
-    showToast('Please log in first to claim Arena XP.');
+    showToast('Log in to take the daily quiz.');
     openAuthModal('login');
     return;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const claimKey = `scell_daily_game_${student.roll}_${today}`;
-
-  if (sessionStorage.getItem(claimKey) === 'claimed') {
-    showToast('Daily mission already claimed for today.');
+  const today = getLocalDateKey();
+  const history = getDailyGameDates(student.roll);
+  if (history.includes(today)) {
+    showToast('Today’s quiz has already been completed.');
     return;
   }
 
+  const selectedAnswer = document.querySelector('#daily-arena-quiz input[name="daily-arena-answer"]:checked')?.value;
+  const feedback = document.getElementById('daily-arena-feedback');
+  if (!selectedAnswer) {
+    if (feedback) feedback.textContent = 'Choose an answer before submitting.';
+    return;
+  }
+  if (selectedAnswer !== getDailyArenaQuiz().answer) {
+    if (feedback) feedback.textContent = 'Not quite. Review the question and try again.';
+    return;
+  }
+
+  const submitButton = document.getElementById('daily-arena-submit');
+  if (submitButton) submitButton.disabled = true;
   const xpReward = 50;
   if (db) {
     try {
-      const { error } = await db.from('daily_game_logs').insert([{ student_roll: student.roll, date_claimed: today }]);
-      if (error && !error.message.includes('duplicate')) console.warn('Daily log insert warning:', error.message);
+      const { error } = await db.from('daily_game_logs').insert([{ student_roll: student.roll, date_claimed: today, xp_awarded: xpReward }]);
+      if (error) {
+        if (error.code === '23505' || /duplicate|unique/i.test(error.message || '')) {
+          saveDailyGameDate(student.roll, today);
+          if (feedback) feedback.textContent = 'Today’s answer was already recorded on your account.';
+          renderRoute('arena');
+          return;
+        }
+        throw error;
+      }
     } catch (err) {
       console.warn('Daily claim log failed:', err);
+      if (submitButton) submitButton.disabled = false;
+      if (feedback) feedback.textContent = 'Could not record your answer. Please try again.';
+      return;
     }
   }
 
-  const nextXp = Number(student.xp || 0) + xpReward;
+  const dates = saveDailyGameDate(student.roll, today);
+  let nextXp = Number(student.xp || 0) + xpReward;
+  if (db) {
+    try {
+      const { data: profile, error: readError } = await db.from('students').select('xp').eq('roll', student.roll).maybeSingle();
+      if (readError) throw readError;
+      nextXp = Number(profile?.xp || 0) + xpReward;
+      const { error: updateError } = await db.from('students').update({ xp: nextXp }).eq('roll', student.roll);
+      if (updateError) throw updateError;
+    } catch (error) {
+      console.warn('Daily XP cloud update failed:', error);
+    }
+  }
+
   student.xp = nextXp;
   saveCurrentStudentSession(student);
-  sessionStorage.setItem(claimKey, 'claimed');
-  showToast(`Daily challenge cleared. +${xpReward} XP awarded.`);
+  const streak = calculateDailyGameStreak(dates, today);
+  showToast(`Correct answer. +${xpReward} XP · ${streak}-day streak.`);
   renderRoute('arena');
 }
 
@@ -1804,7 +2085,7 @@ function normalizeTeamCategory(category) {
 }
 
 function resetTeamForm() {
-  const ids = ['team-name', 'team-role', 'team-category', 'team-phone', 'team-whatsapp', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-website', 'team-order', 'team-status'];
+  const ids = ['team-name', 'team-role', 'team-description', 'team-category', 'team-phone', 'team-whatsapp', 'team-department', 'team-batch', 'team-linkedin', 'team-email', 'team-website', 'team-order', 'team-status'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1860,6 +2141,7 @@ function prefillTeamMember(name, category = 'Student Representatives') {
   const ids = {
     'team-name': member.name || '',
     'team-role': member.role || member.designation || '',
+    'team-description': member.description || '',
     'team-category': normalizedCategory,
     'team-phone': member.phone || '',
     'team-whatsapp': member.whatsapp || '',
@@ -1900,6 +2182,7 @@ function handleSaveTeamMember(e) {
     name: document.getElementById('team-name').value.trim(),
     role: document.getElementById('team-role').value.trim(),
     designation: document.getElementById('team-role').value.trim(),
+    description: document.getElementById('team-description').value.trim(),
     category,
     group: category,
     image: normalizeTeamImageUrl(uploadedImage),
@@ -1949,6 +2232,32 @@ function handleSaveTeamMember(e) {
   showToast('Team record saved.');
 }
 
+function saveDeveloperProfile(event) {
+  event.preventDefault();
+  const profile = Object.fromEntries(['name', 'branch', 'batch', 'role', 'image'].map(key => [
+    key,
+    document.getElementById(`developer-${key}`)?.value.trim() || ''
+  ]));
+  if (!profile.name || !profile.role) {
+    showToast('Developer name and role are required.');
+    return;
+  }
+  SCELL_DATA.team.developedBy = { ...SCELL_DATA.team.developedBy, ...profile };
+  saveTeamDirectory();
+  savePersistedScellData();
+  renderRoute('admin');
+  showToast('Developed By profile saved.');
+}
+
+function deleteDeveloperProfile() {
+  if (!window.confirm('Clear the Developed By profile from the Team page?')) return;
+  SCELL_DATA.team.developedBy = { name: '', branch: '', batch: '', role: '', image: '' };
+  saveTeamDirectory();
+  savePersistedScellData();
+  renderRoute('admin');
+  showToast('Developed By profile cleared.');
+}
+
 function deleteTeamMember(name, category = 'Student Representatives') {
   const normalizedCategory = normalizeTeamCategory(category);
   const ok = window.confirm(`Remove ${name} from ${normalizedCategory}?`);
@@ -1979,24 +2288,103 @@ function saveContentSection(section) {
     subtitle: document.getElementById(`content-subtitle-${section}`)?.value || '',
     description: document.getElementById(`content-description-${section}`)?.value || ''
   };
+  let aboutPipeline;
+  if (section === 'about') {
+    try {
+      aboutPipeline = JSON.parse(document.getElementById('content-pipeline-about')?.value || '[]');
+      if (!Array.isArray(aboutPipeline)) throw new Error('Pipeline must be a JSON array.');
+    } catch (error) {
+      showToast(`Invalid About pipeline: ${error.message}`);
+      return;
+    }
+  }
 
   if (!SCELL_DATA.siteContent[section]) {
     SCELL_DATA.siteContent[section] = {};
   }
 
   if (section === 'home') {
-    SCELL_DATA.siteContent.home = { ...SCELL_DATA.siteContent.home, heading: values.heading || SCELL_DATA.siteContent.home.heading, subheading: values.subtitle || SCELL_DATA.siteContent.home.subheading, description: values.description || SCELL_DATA.siteContent.home.description, announcement: SCELL_DATA.siteContent.home.announcement || '// STARTUP_CELL.GECWC_INCUBATOR' };
+    SCELL_DATA.siteContent.home = { ...SCELL_DATA.siteContent.home, heading: values.heading, subheading: values.subtitle, description: values.description, announcement: SCELL_DATA.siteContent.home.announcement || '// STARTUP_CELL.GECWC_INCUBATOR' };
   } else {
     SCELL_DATA.siteContent[section] = {
       ...SCELL_DATA.siteContent[section],
-      heading: values.heading || SCELL_DATA.siteContent[section].heading,
-      subtitle: values.subtitle || SCELL_DATA.siteContent[section].subtitle,
-      intro: values.subtitle || SCELL_DATA.siteContent[section].intro,
-      description: values.description || SCELL_DATA.siteContent[section].description
+      heading: values.heading,
+      subtitle: values.subtitle,
+      intro: values.subtitle,
+      description: values.description,
+      ...(section === 'about' ? { pipeline: aboutPipeline } : {})
     };
   }
 
   savePersistedScellData();
   renderRoute(currentRoute || 'home');
   showToast(`${section.toUpperCase()} content saved.`);
+}
+
+function setAdminCollection(collection) {
+  if (!SCELL_CMS_COLLECTION_FIELDS[collection]) return;
+  SCELL_ADMIN_STATE.activeCollection = collection;
+  SCELL_ADMIN_STATE.editingContentRecordId = null;
+  renderRoute('admin');
+}
+
+function editAdminContentRecord(collection, id) {
+  if (!SCELL_CMS_COLLECTION_FIELDS[collection]) return;
+  SCELL_ADMIN_STATE.activeTab = 'records';
+  SCELL_ADMIN_STATE.activeCollection = collection;
+  SCELL_ADMIN_STATE.editingContentRecordId = id;
+  renderRoute('admin');
+  document.getElementById('admin-record-id')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetAdminContentRecord() {
+  SCELL_ADMIN_STATE.editingContentRecordId = null;
+  renderRoute('admin');
+}
+
+function saveAdminContentRecord(event) {
+  event.preventDefault();
+  const collection = SCELL_ADMIN_STATE.activeCollection;
+  const fieldDefinitions = SCELL_CMS_COLLECTION_FIELDS[collection];
+  if (!fieldDefinitions) return;
+
+  const items = SCELL_DATA[collection];
+  const recordId = document.getElementById('admin-record-id')?.value || '';
+  const existingIndex = items.findIndex(item => String(item.id) === String(recordId));
+  const existing = existingIndex >= 0 ? items[existingIndex] : null;
+  const record = { ...(existing || {}) };
+
+  fieldDefinitions.forEach(field => {
+    const input = document.getElementById(`admin-record-${field.key}`);
+    const value = String(input?.value || '').trim();
+    record[field.key] = field.list
+      ? value.split(/[\n,]/).map(item => item.trim()).filter(Boolean)
+      : value;
+  });
+
+  if (existing) {
+    items[existingIndex] = record;
+  } else {
+    const prefix = collection === 'projects' ? 'PRJ' : collection === 'startups' ? 'STP' : 'MEM';
+    record.id = collection === 'memories' ? Date.now() : `${prefix}-${Date.now().toString(36).toUpperCase()}`;
+    items.unshift(record);
+  }
+
+  savePersistedScellData();
+  SCELL_ADMIN_STATE.editingContentRecordId = null;
+  renderRoute('admin');
+  showToast(`${collection.slice(0, -1)} saved.`);
+}
+
+function deleteAdminContentRecord(collection, id) {
+  if (!SCELL_CMS_COLLECTION_FIELDS[collection]) return;
+  const item = SCELL_DATA[collection].find(record => String(record.id) === String(id));
+  const title = item?.name || item?.title || 'this record';
+  if (!window.confirm(`Delete ${title}? This cannot be undone.`)) return;
+
+  SCELL_DATA[collection] = SCELL_DATA[collection].filter(record => String(record.id) !== String(id));
+  if (String(SCELL_ADMIN_STATE.editingContentRecordId) === String(id)) SCELL_ADMIN_STATE.editingContentRecordId = null;
+  savePersistedScellData();
+  renderRoute('admin');
+  showToast('Record deleted.');
 }
